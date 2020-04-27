@@ -13,43 +13,44 @@ import java.util.logging.SimpleFormatter;
 
 public class Server implements Runnable {
 
-    private String path;
+
+    //Chemin d'accès files audio Marina
+    //private String path = "C://temp//AudioStream//myMusic//audio.wav";
+
+    //Chemin d'accès files audio Thomas
+    private String path = "C://temp//AudioStream//myMusic//David Bowie-Helden.wav";
+
+    //Chemin d'accès log Thomas
+    //private String myLog = "c://temp//AudioStream//my.log";
+
+    //Chemin d'accès log Marina
+    //private String myLog = "C://toSend//my.log";
+
+
+
+
+    public Server(){
+
+
+        run();
+
+
+    }
+
+
 
     @Override
     public void run() {
 
-        path="C://toSend//audio.wav"; //  ajouter txt fichier pour ecrire le path et la taille du fichier wav
+        //path="C://toSend//audio.wav"; //  ajouter txt fichier pour ecrire le path et la taille du fichier wav
 
-        Logger log = Logger.getLogger("myLogger");
-        try {
-            FileHandler f = new FileHandler("C://toSend//my.log", true);
-            // SimpleFormatter formatter = new SimpleFormatter();
-            CustomFormatter formatter = new CustomFormatter();
-
-            log.addHandler(f);
-            f.setFormatter(formatter);
-            log.setLevel(Level.INFO);
-            log.info("\n-------------this is the info level------");
-            log.warning("attention hacker");
-            log.severe("exception");
-
-            log.setLevel(Level.WARNING);
-            log.warning("\n-------------this is the warning level------");
-            log.warning("attention hacker");
-            log.severe("exception");
-
-            log.setLevel(Level.SEVERE);
-            log.severe("\n-------------this is severe level------");
-            log.warning("attention hacker");
-            log.severe("exception");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        //ServerLog sl = new ServerLog();
 
 
+        System.out.println("Server online");
 
         try {
+
             ServerSocket listeningSocket = new ServerSocket(17257);
             Socket exchangeSocket = listeningSocket.accept();
             System.out.println("I am listening ");

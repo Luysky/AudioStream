@@ -1,6 +1,6 @@
 package HES;
 
-public class ClientTwo {
+public class ClientTwo extends ClientAlpha {
 
     // ClientTwo a le code du Server et du Client
     //ClientTwo lit l'info du Server et se connect aux path et le fichier audio
