@@ -7,12 +7,13 @@ import java.io.InputStream;
 
 public class AudioPlayer {
 
+    //Class a decrire
 
-    long currentFrame;
-    Clip clip;
-    String status;
-    AudioInputStream audioInputStream;
-    static String filePath;
+    public long currentFrame;
+    public Clip clip;
+    public String status;
+    public AudioInputStream audioInputStream;
+    public static String filePath;
 
 
     public AudioPlayer(InputStream is) throws UnsupportedAudioFileException, IOException, LineUnavailableException {

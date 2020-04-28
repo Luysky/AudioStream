@@ -6,6 +6,7 @@ import java.util.logging.LogRecord;
 
 public class CustomFormatter extends Formatter {
 
+    //Class a decrire
 
     @Override
     public String format(LogRecord record) {
