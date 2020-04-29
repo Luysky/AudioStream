@@ -140,6 +140,10 @@ public class Server implements Runnable {
             clientMusicTime = (List<Integer>) recupInfos.get(4);
             System.out.println("Durée de la chanson numero 4 : "+clientMusicTime.get(3));
 
+            String input = clientMusicList.get(3);
+            input = input.substring(input.indexOf("'\'")+1, input.lastIndexOf("."));
+
+            System.out.println(input);
 
 
             System.out.println("Closing sockets.");
