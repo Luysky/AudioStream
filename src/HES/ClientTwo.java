@@ -9,8 +9,12 @@ public class ClientTwo extends ClientAlpha {
 
         clientName="Client two";
 
-        portClient=22546;
-        startClientSockets();
+        //portClient=22545;
+        try {
+            startClientSockets();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
 
     }

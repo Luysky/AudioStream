@@ -26,14 +26,16 @@ public class ClientAlpha implements Runnable {
     //protected String ipAddress = "192.168.56.1";
 
     //ipAddress Marina
+    InetAddress serverAddress;
     //protected String ipAddress = "192.168.0.15";
 
     //portServer est fixe car connu par le programme
     protected int portServer = 17257;
+    protected Socket clientSocketOnServer;
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
-    protected int portClient = 00000;
+    //Le port est distribué par le Server automatiquement
 
 
     protected List<String> myMusic= new ArrayList<>();
@@ -173,10 +175,12 @@ public class ClientAlpha implements Runnable {
          * Methode qui va repertorier tous les fichiers wav se trouvant dans le repertoire du client
          */
 
+        System.out.println("I am in the method to search my music");
         List<String> myMusic=new ArrayList<>();
 
         try (Stream<Path> walk = Files.walk(Paths.get("C://temp//AudioStream//myMusic"))) {
 
+            System.out.println("I've found the path to music");
             myMusic = walk.map(x -> x.toString())
                     .filter(f -> f.endsWith(".wav")).collect(Collectors.toList());
 
@@ -229,10 +233,15 @@ public class ClientAlpha implements Runnable {
          */
         List<Object> myCollectedInfo = new ArrayList<>();
 
+        System.out.println("I am in collectMyInfo");
         myCollectedInfo.add(clientName);
+        System.out.println("I've added clientName");
         myCollectedInfo.add(findIpAddress());
-        myCollectedInfo.add(portClient);
+        System.out.println("I've added IP address");
+       // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
+        System.out.println("I haven't added port");
         myCollectedInfo.add(searchMyMusic());
+        System.out.println("I've added my music");
         myCollectedInfo.add(searchSizesMySongs());
 
 
@@ -240,37 +249,52 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void startClientSockets() throws IOException {
+    public void startClientSockets() throws IOException, InterruptedException {
 
         /**
-         * @author Thomas
+         * @author_Thomas_et_Marina
          * Methode servant a initier les Socket de Server et d'echange pour les clients
          */
 
         System.out.println(clientName);
-        ServerSocket listeningSocket = new ServerSocket(portClient);
 
-            //A determiner l'utilite de ce Thread
+        try{
+            serverAddress = InetAddress.getByName(findIpAddress());
+            System.out.println("Get the address of the server : "+ serverAddress);
+
+            Socket clientSocket = new Socket(serverAddress, 17257);
+            System.out.println("I got connection to " + serverAddress);
+
+            int clientPort = clientSocket.getLocalPort();
+            System.out.println("clientPort " + clientPort);
+            // now we wait for something ??
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-        Socket exchangeSocket = new Socket(findIpAddress(), portServer);
-        System.out.println("I am connected");
+            System.out.println("Can we talk?");
 
-        OutputStream outputStream = exchangeSocket.getOutputStream();
+            OutputStream outputStream = clientSocket.getOutputStream();
 
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+            System.out.println("We got outputStream");
 
-        objectOutputStream.writeObject(collectMyInfo());
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
+            System.out.println("We got objectOutputStream");
 
+            objectOutputStream.writeObject(collectMyInfo());
 
-        System.out.println("Closing socket and terminating program.");
+            System.out.println("We tried to write smth");
 
-        exchangeSocket.close();
+        }catch(UnknownHostException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            System.out.println("server connection error, dying.....");
+        }catch (NullPointerException e){
+            System.out.println("Connection interrupted with the server");
+        }
 
 
     }

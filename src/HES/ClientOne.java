@@ -17,9 +17,13 @@ public class ClientOne extends ClientAlpha{
     public ClientOne() throws IOException {
 
         clientName="Client one";
-        portClient=22545;
+        //portClient=22545;
 
-        startClientSockets();
+        try {
+            startClientSockets();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
 
         //Si tu actives uniquement run() dans server et client la musique se lance
