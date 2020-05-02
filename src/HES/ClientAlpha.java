@@ -31,6 +31,7 @@ public class ClientAlpha implements Runnable {
 
     //portServer est fixe car connu par le programme
     protected int portServer = 17257;
+    //Client récupère le Socket qui est distribué à lui par le Serveur
     protected Socket clientSocketOnServer;
 
     //portClient est fixe également
@@ -40,12 +41,17 @@ public class ClientAlpha implements Runnable {
 
     protected List<String> myMusic= new ArrayList<>();
     protected List<String> myInfo = new ArrayList<>();
+    //ClientNumber est utilisé pour donner le nom, mais c'est toujours N1 :-))
+    private int clientNumber;
 
-    protected String clientName = "unkwnow";
 
     public ClientAlpha() {
 
-
+        try {
+            startClientSockets();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -175,12 +181,10 @@ public class ClientAlpha implements Runnable {
          * Methode qui va repertorier tous les fichiers wav se trouvant dans le repertoire du client
          */
 
-        System.out.println("I am in the method to search my music");
         List<String> myMusic=new ArrayList<>();
 
         try (Stream<Path> walk = Files.walk(Paths.get("C://temp//AudioStream//myMusic"))) {
 
-            System.out.println("I've found the path to music");
             myMusic = walk.map(x -> x.toString())
                     .filter(f -> f.endsWith(".wav")).collect(Collectors.toList());
 
@@ -233,15 +237,10 @@ public class ClientAlpha implements Runnable {
          */
         List<Object> myCollectedInfo = new ArrayList<>();
 
-        System.out.println("I am in collectMyInfo");
-        myCollectedInfo.add(clientName);
-        System.out.println("I've added clientName");
+        myCollectedInfo.add("Client N " + clientNumber); // j'ai remplacer le Nom du Client, mais c'est toujours 1
         myCollectedInfo.add(findIpAddress());
-        System.out.println("I've added IP address");
        // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
-        System.out.println("I haven't added port");
         myCollectedInfo.add(searchMyMusic());
-        System.out.println("I've added my music");
         myCollectedInfo.add(searchSizesMySongs());
 
 
@@ -255,8 +254,8 @@ public class ClientAlpha implements Runnable {
          * @author_Thomas_et_Marina
          * Methode servant a initier les Socket de Server et d'echange pour les clients
          */
-
-        System.out.println(clientName);
+        clientNumber++;
+        System.out.println("Client No " + clientNumber);
 
         try{
             serverAddress = InetAddress.getByName(findIpAddress());
@@ -274,19 +273,13 @@ public class ClientAlpha implements Runnable {
                 e.printStackTrace();
             }
 
-            System.out.println("Can we talk?");
 
             OutputStream outputStream = clientSocket.getOutputStream();
 
-            System.out.println("We got outputStream");
-
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-
-            System.out.println("We got objectOutputStream");
 
             objectOutputStream.writeObject(collectMyInfo());
 
-            System.out.println("We tried to write smth");
 
         }catch(UnknownHostException e){
             e.printStackTrace();

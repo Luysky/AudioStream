@@ -25,16 +25,15 @@ public class Server {
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 1000;
 
-    Socket exchangeSocket = null;
-    InetAddress localAddress = null;
-    ServerSocket listeningSocket = null;
-    String interfaceName = "wlan1"; // ?? à determiner
+    private Socket exchangeSocket = null;
+    private InetAddress localAddress = null;
+    private ServerSocket listeningSocket = null;
+    private String interfaceName = "wlan1"; // ?? à determiner
     int ClientNumber = 1; // pour le premier client
 
     public Server() {
 
         startSocketServer();
-        System.out.println("Connection is on, le's try to send info");
         //sendInfoFromClient();
 
         //Si tu actives uniquement run() dans server et client la musique se lance
@@ -45,6 +44,13 @@ public class Server {
     }
 
     public void sendInfoFromClient() {
+
+        /**
+         * @Thomas
+         * Methode integre la recuperation de la fusee d'information du client
+         * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
+         * de tous les clients
+         */
 
         System.out.println("Client is connected");
 
@@ -110,10 +116,6 @@ public class Server {
 
         System.out.println(input);
 
-        // Server travail toujours, il ne faut pas le fermer.
-        // System.out.println("Closing sockets.");
-
-        // exchangeSocket.close();
 
     }
 
@@ -121,10 +123,8 @@ public class Server {
 
         /**
          * @Thomas_et_Marina
-         * Methode servant a initier les Sockets de Server et d'echange chez le Server
-         * Pour l'instant elle integre egalement la recuperation de la fusee d'information du client
-         * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
-         * de tous les clients
+         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
+         * le Serveur reste toujours en écoute et accept tous les clients qui se connectent.
          */
 
         System.out.println("Server starts");
@@ -158,8 +158,6 @@ public class Server {
                 System.out.println("Listening to Port :" + listeningSocket.getLocalPort());
 
                 while (true) {
-                    //int tempPort = listeningSocket.getLocalPort();
-                    //System.out.println("port " + tempPort);
                     exchangeSocket = listeningSocket.accept();
                     System.out.println("I am listening ");
                     Thread acceptClientThread = new Thread(new AcceptClient(exchangeSocket, ClientNumber));
