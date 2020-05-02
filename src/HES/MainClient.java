@@ -6,8 +6,7 @@ public class MainClient {
 
     public static void main(String[] args) throws IOException {
 
-        ClientOne client1 = new ClientOne();
+        ClientAlpha alpha = new ClientAlpha();
 
-        //ClientTwo client2 = new ClientTwo();
     }
 }

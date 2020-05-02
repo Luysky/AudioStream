@@ -26,24 +26,32 @@ public class ClientAlpha implements Runnable {
     //protected String ipAddress = "192.168.56.1";
 
     //ipAddress Marina
+    InetAddress serverAddress;
     //protected String ipAddress = "192.168.0.15";
 
     //portServer est fixe car connu par le programme
     protected int portServer = 17257;
+    //Client récupère le Socket qui est distribué à lui par le Serveur
+    protected Socket clientSocketOnServer;
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
-    protected int portClient = 00000;
+    //Le port est distribué par le Server automatiquement
 
 
     protected List<String> myMusic= new ArrayList<>();
     protected List<String> myInfo = new ArrayList<>();
+    //ClientNumber est utilisé pour donner le nom, mais c'est toujours N1 :-))
+    private int clientNumber;
 
-    protected String clientName = "unkwnow";
 
     public ClientAlpha() {
 
-
+        try {
+            startClientSockets();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -229,9 +237,9 @@ public class ClientAlpha implements Runnable {
          */
         List<Object> myCollectedInfo = new ArrayList<>();
 
-        myCollectedInfo.add(clientName);
+        myCollectedInfo.add("Client N " + clientNumber); // j'ai remplacer le Nom du Client, mais c'est toujours 1
         myCollectedInfo.add(findIpAddress());
-        myCollectedInfo.add(portClient);
+       // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 
@@ -240,37 +248,46 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void startClientSockets() throws IOException {
+    public void startClientSockets() throws IOException, InterruptedException {
 
         /**
-         * @author Thomas
+         * @author_Thomas_et_Marina
          * Methode servant a initier les Socket de Server et d'echange pour les clients
          */
+        clientNumber++;
+        System.out.println("Client No " + clientNumber);
 
-        System.out.println(clientName);
-        ServerSocket listeningSocket = new ServerSocket(portClient);
+        try{
+            serverAddress = InetAddress.getByName(findIpAddress());
+            System.out.println("Get the address of the server : "+ serverAddress);
 
-            //A determiner l'utilite de ce Thread
+            Socket clientSocket = new Socket(serverAddress, 17257);
+            System.out.println("I got connection to " + serverAddress);
+
+            int clientPort = clientSocket.getLocalPort();
+            System.out.println("clientPort " + clientPort);
+            // now we wait for something ??
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-        Socket exchangeSocket = new Socket(findIpAddress(), portServer);
-        System.out.println("I am connected");
 
-        OutputStream outputStream = exchangeSocket.getOutputStream();
+            OutputStream outputStream = clientSocket.getOutputStream();
 
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
-        objectOutputStream.writeObject(collectMyInfo());
+            objectOutputStream.writeObject(collectMyInfo());
 
 
-
-        System.out.println("Closing socket and terminating program.");
-
-        exchangeSocket.close();
+        }catch(UnknownHostException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            System.out.println("server connection error, dying.....");
+        }catch (NullPointerException e){
+            System.out.println("Connection interrupted with the server");
+        }
 
 
     }
