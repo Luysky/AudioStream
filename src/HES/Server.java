@@ -5,6 +5,9 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class Server {
@@ -21,7 +24,7 @@ public class Server {
 
     //Chemin d'accès log Marina
     //private String myLog = "C://toSend//my.log";
-
+    private Logger log;
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 1000;
 
@@ -129,6 +132,8 @@ public class Server {
 
         System.out.println("Server starts");
 
+        startLogging();
+
         try {
             NetworkInterface ni = null;
             try {
@@ -174,5 +179,37 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void startLogging(){
+
+        log = Logger.getLogger("myLogger");
+
+        try {
+            FileHandler f = new FileHandler("C://temp//AudioStream//my.log", true);
+            // SimpleFormatter formatter = new SimpleFormatter();
+            CustomFormatter formatter = new CustomFormatter();
+
+            log.addHandler(f);
+            f.setFormatter(formatter);
+            log.setLevel(Level.INFO);
+            log.info("\n-------------this is the info level------");
+            log.warning("attention hacker");
+            log.severe("exception");
+
+            log.setLevel(Level.WARNING);
+            log.warning("\n-------------this is the warning level------");
+            log.warning("attention hacker");
+            log.severe("exception");
+
+            log.setLevel(Level.SEVERE);
+            log.severe("\n-------------this is severe level------");
+            log.warning("attention hacker");
+            log.severe("exception");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }
