@@ -2,7 +2,7 @@ package HES;
 
 import java.io.IOException;
 
-public class MainClient {
+public class MainClientOne {
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
@@ -10,11 +10,11 @@ public class MainClient {
 
         ClientOne clientOne = new ClientOne();
 
-        System.out.println();
-        System.out.println("******************************************");
-        System.out.println();
+        //System.out.println();
+        //System.out.println("******************************************");
+        //System.out.println();
 
-        ClientTwo clientTwo = new ClientTwo();
+
 
 
     }

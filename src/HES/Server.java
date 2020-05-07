@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -25,11 +26,13 @@ public class Server {
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 1000;
 
+
+
     private Socket exchangeSocket = null;
     private InetAddress localAddress = null;
     private ServerSocket listeningSocket = null;
     private String interfaceName = "wlan1"; // ?? à determiner
-    int ClientNumber = 1; // pour le premier client
+    private int ClientNumber = 1; // pour le premier client
 
     public Server() {
 
@@ -43,7 +46,7 @@ public class Server {
 
     }
 
-    public void sendInfoFromClient() {
+    public void receiveInfoFromClient() {
 
         /**
          * @Thomas
@@ -52,7 +55,7 @@ public class Server {
          * de tous les clients
          */
 
-        System.out.println("Client is connected");
+        System.out.println("A client is connected");
 
 
         InputStream inputStream = null;
@@ -88,7 +91,6 @@ public class Server {
         idClient++;
 
         List<Object> clientPackage = new ArrayList<>();
-
         clientPackage.add(idClient);
         clientPackage.add(recupInfos);
 
@@ -101,23 +103,120 @@ public class Server {
 
         System.out.println("Client Name : " + recupInfos.get(0));
         System.out.println("Client Ip : " + recupInfos.get(1));
-        //System.out.println("Client Port : " + recupInfos.get(2)); // il n'ya plus des port, j'ai changé le numero du tableau
+        System.out.println("Client Port : " + recupInfos.get(2)); // il n'ya plus des port, j'ai changé le numero du tableau
 
-        List<String> clientMusicList;
-        clientMusicList = (List<String>) recupInfos.get(2);
-        System.out.println("Chanson numero 1 : " + clientMusicList.get(1));
+        System.out.println();
 
-        List<Integer> clientMusicTime;
-        clientMusicTime = (List<Integer>) recupInfos.get(3);
-        System.out.println("Durée de la chanson numero 1 : " + clientMusicTime.get(1));
+        //List<String> clientMusicList;
+        //clientMusicList = (List<String>) recupInfos.get(2);
+        //System.out.println("Chanson numero 1 : " + clientMusicList.get(1));
 
-        String input = clientMusicList.get(1);
-        input = input.substring(input.indexOf("'\'") + 1, input.lastIndexOf("."));
+        //List<Integer> clientMusicTime;
+        //clientMusicTime = (List<Integer>) recupInfos.get(3);
+        //System.out.println("Durée de la chanson numero 1 : " + clientMusicTime.get(1));
 
-        System.out.println(input);
+        //String input = clientMusicList.get(1);
+        //input = input.substring(input.indexOf("myMusic")+8, input.lastIndexOf("."));
+
+        //System.out.println(input);
+        //giveMusicList(1);
+
+    }
+
+    public void sendSomethingToClient(InetAddress clientIp, int clientPort,Object object) throws IOException {
+
+        Socket clientSocket = null;
+        try {
+            clientSocket = new Socket(clientIp, clientPort);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        OutputStream outputStream = clientSocket.getOutputStream();
+
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+        objectOutputStream.writeObject(object);
 
 
     }
+
+
+    public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
+
+        List<Object>tempList = (List<Object>) clientlist.get(client);
+        List<Object>packageList = (List<Object>) tempList.get(1);
+        InetAddress temp = (InetAddress) packageList.get(1);
+
+        return temp;
+    }
+
+    public int retreivedPortFromClient(List<Object>clientsList, int client){
+
+          List<Object>tempList = (List<Object>) clientsList.get(client);
+        List<Object>packageList = (List<Object>) tempList.get(1);
+        int temp = (int) packageList.get(2);
+
+        return temp;
+
+    }
+
+    public void giveMusicList(int clientNumber){
+
+        List<Object>tempList = new ArrayList<>();
+        List<Object>packageList = new ArrayList<>();
+        List<String>musicList = new ArrayList<>();
+
+
+
+        for(int i = 0; i<clientsList.size();i++){
+
+            if(clientNumber==i){
+                i++;
+            }
+
+            else {
+                //On ouvre le bon clientList
+                tempList = (List<Object>) clientsList.get(i);
+
+                //On récupère la liste d'infos du client
+                packageList = (List<Object>) tempList.get(1);
+
+                //On sélectionne la liste de music et on l'ajoute au menu des music
+                musicList = (List<String>) packageList.get(3);
+            }
+
+            listIterator(musicList);
+
+        }
+
+
+    }
+
+    public void listIterator(List<String> c) {
+
+        /**
+         * @author Thomas
+         * Methode permettant d'afficher une liste de String avec numerotation devant chaque element
+         * et substring pour garder uniquement le nom de l'audio.
+         */
+
+        int cpt = 1;
+
+        Iterator<String> i = c.iterator();
+
+        while (i.hasNext()) {
+
+            String l = i.next();
+            l = l.substring(l.indexOf("myMusic")+8, l.lastIndexOf("."));
+            System.out.println(cpt + ". " + l);
+            cpt++;
+        }
+
+        System.out.println();
+
+    }
+
 
     public void startSocketServer() {
 
@@ -153,17 +252,24 @@ public class Server {
 
                 listeningSocket = new ServerSocket(17257, 10, localAddress);
 
-                System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
-                System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
+                //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
+                //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
                 System.out.println("Listening to Port :" + listeningSocket.getLocalPort());
+                System.out.println();
 
                 while (true) {
                     exchangeSocket = listeningSocket.accept();
+
+                    System.out.println("******************************************");
+
                     System.out.println("I am listening ");
                     Thread acceptClientThread = new Thread(new AcceptClient(exchangeSocket, ClientNumber));
                     ClientNumber++;
                     acceptClientThread.start();
-                    sendInfoFromClient();
+                    receiveInfoFromClient();
+
+                    retreivedIpFromClient(clientsList,0);
+
                 }
 
             } catch (IOException e) {

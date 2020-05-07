@@ -23,13 +23,22 @@ public class ClientAlpha implements Runnable {
     //protected String ipAddress = "192.168.56.1";
 
     //ipAddress Marina
-    InetAddress serverAddress;
+    private InetAddress serverAddress;
     //protected String ipAddress = "192.168.0.15";
+
+    private InetAddress inetAddress = null;
 
     //portServer est fixe car connu par le programme
     protected int portServer = 17257;
+
     //Client récupère le Socket qui est distribué à lui par le Serveur
     protected Socket clientSocketOnServer;
+    private ServerSocket listeningSocket;
+
+
+    protected int clientPort;
+
+    private int ClientNumber = 1;
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
@@ -132,8 +141,8 @@ public class ClientAlpha implements Runnable {
     }
 
 
-    protected String findIpAddress(){
-
+    //protected String findIpAddress(){
+    protected InetAddress findIpAddress(){
         /**
          * @author Thomas
          * Methode qui va servir à determiner automatiquement l'adresse ip du client et son interface
@@ -152,6 +161,7 @@ public class ClientAlpha implements Runnable {
                 if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
                     localAddress = ia;
 
+                    inetAddress = ia;
                 }
             }
 
@@ -159,7 +169,10 @@ public class ClientAlpha implements Runnable {
             e.printStackTrace();
         }
 
-        return localAddress.getHostAddress();
+
+
+        //return localAddress.getHostAddress();
+        return localAddress;
     }
 
     protected String findInterface () throws SocketException {
@@ -255,18 +268,13 @@ public class ClientAlpha implements Runnable {
          * LA FUSEE
          */
         List<Object> myCollectedInfo = new ArrayList<>();
-
-
-
         myCollectedInfo.add(clientName);
         myCollectedInfo.add(findIpAddress());
-       // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
+        myCollectedInfo.add(clientPort);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 
-
         return myCollectedInfo;
-
     }
 
     public void startClientSockets() throws IOException, InterruptedException {
@@ -279,14 +287,20 @@ public class ClientAlpha implements Runnable {
         System.out.println("Client name:  " + clientName);
 
         try{
-            serverAddress = InetAddress.getByName(findIpAddress());
+            //serverAddress = InetAddress.getByName(findIpAddress());
+            serverAddress = findIpAddress();
             System.out.println("Get the address of the server : "+ serverAddress);
 
             Socket clientSocket = new Socket(serverAddress, 17257);
             System.out.println("I got connection to " + serverAddress);
 
-            int clientPort = clientSocket.getLocalPort();
+
+            //On choisi un port client aléatoirement
+
+            clientPort = clientSocket.getLocalPort();
             System.out.println("clientPort " + clientPort);
+
+            /*
             // now we wait for something ??
             try {
                 Thread.sleep(1000);
@@ -294,12 +308,41 @@ public class ClientAlpha implements Runnable {
                 e.printStackTrace();
             }
 
+             */
 
             OutputStream outputStream = clientSocket.getOutputStream();
 
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
             objectOutputStream.writeObject(collectMyInfo());
+
+
+
+            try {
+
+                listeningSocket = new ServerSocket(clientPort, 10, inetAddress);
+
+                //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
+                //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
+                System.out.println("Listening to Port :" + listeningSocket.getLocalPort());
+                System.out.println();
+
+                while (true) {
+                    clientSocket = listeningSocket.accept();
+
+                    System.out.println("******************************************");
+
+                    System.out.println("I am listening ");
+                    Thread acceptClientThread = new Thread(new AcceptClient(clientSocket, ClientNumber));
+                    ClientNumber++;
+                    acceptClientThread.start();
+                    //sendInfoFromClient();
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
 
 
         }catch(UnknownHostException e){
@@ -309,6 +352,43 @@ public class ClientAlpha implements Runnable {
         }catch (NullPointerException e){
             System.out.println("Connection interrupted with the server");
         }
+
+
+    }
+
+    public void receivedInfo(){
+
+        System.out.println("A client is connected");
+
+
+        InputStream inputStream = null;
+        try {
+            inputStream = clientSocketOnServer.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // create a DataInputStream so we can read data from it.
+
+        ObjectInputStream objectInputStream = null;
+        try {
+            objectInputStream = new ObjectInputStream(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        // Recuperation des informations de la fusee venant du Server
+
+        List<Object> incomingRocket = null;
+        try {
+            incomingRocket = (List<Object>) objectInputStream.readObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
 
 
     }
