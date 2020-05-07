@@ -22,13 +22,7 @@ public class Main {
         // Zone de test méthodes
 
 
-        //Mon test du 07.05.2020
-
-        //Test de procédure Git
-
-        //Test de procédure depuis Master
-        //Ma récup
-
+       //Mon changement pour le Master
 
     }
 
