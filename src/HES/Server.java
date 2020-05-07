@@ -105,13 +105,13 @@ public class Server {
 
         List<String> clientMusicList;
         clientMusicList = (List<String>) recupInfos.get(2);
-        System.out.println("Chanson numero 4 : " + clientMusicList.get(2));
+        System.out.println("Chanson numero 1 : " + clientMusicList.get(1));
 
         List<Integer> clientMusicTime;
         clientMusicTime = (List<Integer>) recupInfos.get(3);
-        System.out.println("Durée de la chanson numero 4 : " + clientMusicTime.get(2));
+        System.out.println("Durée de la chanson numero 1 : " + clientMusicTime.get(1));
 
-        String input = clientMusicList.get(2);
+        String input = clientMusicList.get(1);
         input = input.substring(input.indexOf("'\'") + 1, input.lastIndexOf("."));
 
         System.out.println(input);

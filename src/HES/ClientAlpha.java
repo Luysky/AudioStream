@@ -7,10 +7,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,22 +36,44 @@ public class ClientAlpha implements Runnable {
     //Le port est distribué par le Server automatiquement
 
 
+    protected String myMusicRepertory = "C://temp//AudioStream//myMusic";
     protected List<String> myMusic= new ArrayList<>();
     protected List<String> myInfo = new ArrayList<>();
-    //ClientNumber est utilisé pour donner le nom, mais c'est toujours N1 :-))
-    private int clientNumber;
+    protected String clientName ="default";
+
+    private String questionOne = "Veuillez donner votre nom";
 
 
     public ClientAlpha() {
+
+
+        clientName=myChoice(questionOne);
+
+
+    }
+
+
+    private String myChoice (String question){
+
+        Scanner scan = new Scanner(System.in);
+
+            String choice = "default";
+
+            System.out.println(question);
+            choice = scan.nextLine();
+
+
+        return choice;
+    }
+
+    protected void startClient(){
 
         try {
             startClientSockets();
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
-
     }
-
 
 
 
@@ -183,7 +202,7 @@ public class ClientAlpha implements Runnable {
 
         List<String> myMusic=new ArrayList<>();
 
-        try (Stream<Path> walk = Files.walk(Paths.get("C://temp//AudioStream//myMusic"))) {
+        try (Stream<Path> walk = Files.walk(Paths.get(myMusicRepertory))) {
 
             myMusic = walk.map(x -> x.toString())
                     .filter(f -> f.endsWith(".wav")).collect(Collectors.toList());
@@ -237,7 +256,9 @@ public class ClientAlpha implements Runnable {
          */
         List<Object> myCollectedInfo = new ArrayList<>();
 
-        myCollectedInfo.add("Client N " + clientNumber); // j'ai remplacer le Nom du Client, mais c'est toujours 1
+
+
+        myCollectedInfo.add(clientName);
         myCollectedInfo.add(findIpAddress());
        // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
         myCollectedInfo.add(searchMyMusic());
@@ -254,8 +275,8 @@ public class ClientAlpha implements Runnable {
          * @author_Thomas_et_Marina
          * Methode servant a initier les Socket de Server et d'echange pour les clients
          */
-        clientNumber++;
-        System.out.println("Client No " + clientNumber);
+        //clientNumber++;
+        System.out.println("Client name:  " + clientName);
 
         try{
             serverAddress = InetAddress.getByName(findIpAddress());
