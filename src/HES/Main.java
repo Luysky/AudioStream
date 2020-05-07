@@ -22,8 +22,7 @@ public class Main {
         // Zone de test méthodes
 
 
-       //Mon changement pour le Master effectif
-        //Mise a jour ma branche
+        //GitHub OK
 
     }
 
