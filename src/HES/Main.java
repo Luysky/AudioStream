@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 
 public class Main {
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) {
 
     System.out.println("Hello");
         // Zone de test méthodes
@@ -24,6 +24,7 @@ public class Main {
 
         //Mon test du 07.05.2020
 
+        //Test de procédure Git
 
 
     }
