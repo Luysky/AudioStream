@@ -7,10 +7,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,40 +18,77 @@ public class ClientAlpha implements Runnable {
      * Classe mère pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
      */
 
-    //Avec les méthodes plus besoin de nos adresses en dur.
-    //ipAddress Thomas
-    //protected String ipAddress = "192.168.56.1";
 
-    //ipAddress Marina
-    InetAddress serverAddress;
-    //protected String ipAddress = "192.168.0.15";
+    private InetAddress serverAddress;
+    private InetAddress inetAddress = null;
 
     //portServer est fixe car connu par le programme
     protected int portServer = 17257;
+
     //Client récupère le Socket qui est distribué à lui par le Serveur
-    protected Socket clientSocketOnServer;
+    protected Socket clientComServerSocket;
+
+    private ServerSocket clientlisteningSocket;
+    protected int portClientServer;
+    protected int portClientClient;
+    private int ClientNumber = 1;
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
     //Le port est distribué par le Server automatiquement
 
 
+    protected String myMusicRepertory = "C://temp//AudioStream//myMusic";
     protected List<String> myMusic= new ArrayList<>();
     protected List<String> myInfo = new ArrayList<>();
-    //ClientNumber est utilisé pour donner le nom, mais c'est toujours N1 :-))
-    private int clientNumber;
+    protected String clientName ="default";
+    private String questionOne = "Veuillez donner votre nom";
 
 
     public ClientAlpha() {
+
+
+        clientName=myChoice(questionOne);
+
+
+    }
+
+
+    private String myChoice (String question){
+
+        /**
+         * @Thomas
+         * methode qui permet de recuperer un choix d'un client dans la console
+         */
+
+        Scanner scan = new Scanner(System.in);
+
+            String choice = "default";
+
+            System.out.println(question);
+            choice = scan.nextLine();
+
+
+        return choice;
+    }
+
+    protected void startClient(){
+
+        /**
+         * @author Thomas
+         * methode qui va demarrer l'activite du client
+         * pour l'instant pas essentiel startClientSockets pourrait suffire.
+         * A ete creer afin d'integrer au besoin une interaction avec l'utilisateur.
+         * (Genre demande du nom utilisateur ou chemin d'acces repertoire audio)
+         */
+
 
         try {
             startClientSockets();
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
-
     }
-
 
 
 
@@ -113,16 +147,14 @@ public class ClientAlpha implements Runnable {
     }
 
 
-    protected String findIpAddress(){
-
+    //protected String findIpAddress(){
+    protected InetAddress findIpAddress(){
         /**
          * @author Thomas
          * Methode qui va servir à determiner automatiquement l'adresse ip du client et son interface
          */
 
         InetAddress localAddress=null;
-
-
         NetworkInterface ni;
         try {
             ni = NetworkInterface.getByName(findInterface());
@@ -133,6 +165,7 @@ public class ClientAlpha implements Runnable {
                 if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
                     localAddress = ia;
 
+                    inetAddress = ia;
                 }
             }
 
@@ -140,7 +173,8 @@ public class ClientAlpha implements Runnable {
             e.printStackTrace();
         }
 
-        return localAddress.getHostAddress();
+        //return localAddress.getHostAddress();
+        return localAddress;
     }
 
     protected String findInterface () throws SocketException {
@@ -183,7 +217,7 @@ public class ClientAlpha implements Runnable {
 
         List<String> myMusic=new ArrayList<>();
 
-        try (Stream<Path> walk = Files.walk(Paths.get("C://temp//AudioStream//myMusic"))) {
+        try (Stream<Path> walk = Files.walk(Paths.get(myMusicRepertory))) {
 
             myMusic = walk.map(x -> x.toString())
                     .filter(f -> f.endsWith(".wav")).collect(Collectors.toList());
@@ -235,17 +269,16 @@ public class ClientAlpha implements Runnable {
          * Methode qui va charger les infos necessaires pour le server dans une List
          * LA FUSEE
          */
-        List<Object> myCollectedInfo = new ArrayList<>();
 
-        myCollectedInfo.add("Client N " + clientNumber); // j'ai remplacer le Nom du Client, mais c'est toujours 1
+        List<Object> myCollectedInfo = new ArrayList<>();
+        myCollectedInfo.add(clientName);
         myCollectedInfo.add(findIpAddress());
-       // myCollectedInfo.add(clientSocketOnServer.getLocalPort());
+        //A ENVOYER portClientClient
+        //myCollectedInfo.add(portClientServer);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 
-
         return myCollectedInfo;
-
     }
 
     public void startClientSockets() throws IOException, InterruptedException {
@@ -254,18 +287,23 @@ public class ClientAlpha implements Runnable {
          * @author_Thomas_et_Marina
          * Methode servant a initier les Socket de Server et d'echange pour les clients
          */
-        clientNumber++;
-        System.out.println("Client No " + clientNumber);
+
+        System.out.println("Client name:  " + clientName);
 
         try{
-            serverAddress = InetAddress.getByName(findIpAddress());
+            serverAddress = findIpAddress();
             System.out.println("Get the address of the server : "+ serverAddress);
 
             Socket clientSocket = new Socket(serverAddress, 17257);
             System.out.println("I got connection to " + serverAddress);
 
-            int clientPort = clientSocket.getLocalPort();
-            System.out.println("clientPort " + clientPort);
+
+            //On choisi un port client aléatoirement
+
+            portClientServer = clientSocket.getLocalPort();
+            System.out.println("clientPort " + portClientServer);
+
+            /*
             // now we wait for something ??
             try {
                 Thread.sleep(1000);
@@ -273,12 +311,41 @@ public class ClientAlpha implements Runnable {
                 e.printStackTrace();
             }
 
+             */
 
             OutputStream outputStream = clientSocket.getOutputStream();
 
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
             objectOutputStream.writeObject(collectMyInfo());
+
+
+
+            try {
+
+                clientlisteningSocket = new ServerSocket(portClientServer, 10, inetAddress);
+
+                //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
+                //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
+                System.out.println("Listening to Port :" + clientlisteningSocket.getLocalPort());
+                System.out.println();
+
+                while (true) {
+                    clientSocket = clientlisteningSocket.accept();
+
+                    System.out.println("******************************************");
+
+                    System.out.println("I am listening ");
+                    Thread acceptClientThread = new Thread(new AcceptClient(clientSocket, ClientNumber));
+                    ClientNumber++;
+                    acceptClientThread.start();
+                    //sendInfoFromClient();
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
 
 
         }catch(UnknownHostException e){
@@ -288,6 +355,49 @@ public class ClientAlpha implements Runnable {
         }catch (NullPointerException e){
             System.out.println("Connection interrupted with the server");
         }
+
+
+    }
+
+    public void receivedInfo(){
+
+        /**
+         * @author Thomas
+         * Methode qui va permettre de recuperer des informations entrantes venant du server.
+         * A MODIFIER POUR TRANSFORMATION UTILISATION DE LA LISTE D'OBJET
+         */
+
+        System.out.println("A client is connected");
+
+
+        InputStream inputStream = null;
+        try {
+            inputStream = clientComServerSocket.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // create a DataInputStream so we can read data from it.
+
+        ObjectInputStream objectInputStream = null;
+        try {
+            objectInputStream = new ObjectInputStream(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        // Recuperation des informations de la fusee venant du Server
+
+        List<Object> incomingRocket = null;
+        try {
+            incomingRocket = (List<Object>) objectInputStream.readObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
 
 
     }
