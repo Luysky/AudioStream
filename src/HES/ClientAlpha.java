@@ -7,7 +7,11 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -17,7 +21,7 @@ public class ClientAlpha implements Runnable {
      * @author Thomas/Marina
      * Classe mère pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
      */
-
+    private final static Logger ClientLogger = Logger.getLogger("ClientLog");
 
     private InetAddress serverAddress;
     private InetAddress inetAddress = null;
@@ -32,6 +36,8 @@ public class ClientAlpha implements Runnable {
     protected int portClientServer;
     protected int portClientClient;
     private int ClientNumber = 1;
+    private Socket clientSocket;
+    private Socket socketForOtherClient;
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
@@ -43,6 +49,15 @@ public class ClientAlpha implements Runnable {
     protected List<String> myInfo = new ArrayList<>();
     protected String clientName ="default";
     private String questionOne = "Veuillez donner votre nom";
+
+    Calendar currentDate = Calendar.getInstance();
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
+    String dateNow = formatter.format(currentDate.getTime());
+    
+    BufferedReader buffInForClient;
+    PrintWriter printForOtherClient;
+    PrintWriter writeForOtherClient;
+    BufferedReader buffToWriteMessage;
 
 
     public ClientAlpha() {
@@ -75,19 +90,15 @@ public class ClientAlpha implements Runnable {
     protected void startClient(){
 
         /**
-         * @author Thomas
+         * @author Thomas et Marina
          * methode qui va demarrer l'activite du client
          * pour l'instant pas essentiel startClientSockets pourrait suffire.
          * A ete creer afin d'integrer au besoin une interaction avec l'utilisateur.
          * (Genre demande du nom utilisateur ou chemin d'acces repertoire audio)
          */
 
+        startClientLogger();
 
-        try {
-            startClientSockets();
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
@@ -293,15 +304,18 @@ public class ClientAlpha implements Runnable {
         try{
             serverAddress = findIpAddress();
             System.out.println("Get the address of the server : "+ serverAddress);
+            ClientLogger.info("The address of the server : " + serverAddress);
 
-            Socket clientSocket = new Socket(serverAddress, 17257);
+            clientSocket = new Socket(serverAddress, 17257);
             System.out.println("I got connection to " + serverAddress);
+            ClientLogger.info("We got connection to " + serverAddress);
 
 
             //On choisi un port client aléatoirement
 
             portClientServer = clientSocket.getLocalPort();
             System.out.println("clientPort " + portClientServer);
+            ClientLogger.info("client port " + portClientServer);
 
             /*
             // now we wait for something ??
@@ -321,31 +335,6 @@ public class ClientAlpha implements Runnable {
 
 
 
-            try {
-
-                clientlisteningSocket = new ServerSocket(portClientServer, 10, inetAddress);
-
-                //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
-                //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
-                System.out.println("Listening to Port :" + clientlisteningSocket.getLocalPort());
-                System.out.println();
-
-                while (true) {
-                    clientSocket = clientlisteningSocket.accept();
-
-                    System.out.println("******************************************");
-
-                    System.out.println("I am listening ");
-                    Thread acceptClientThread = new Thread(new AcceptClient(clientSocket, ClientNumber));
-                    ClientNumber++;
-                    acceptClientThread.start();
-                    //sendInfoFromClient();
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
 
 
         }catch(UnknownHostException e){
@@ -354,6 +343,37 @@ public class ClientAlpha implements Runnable {
             System.out.println("server connection error, dying.....");
         }catch (NullPointerException e){
             System.out.println("Connection interrupted with the server");
+        }
+
+
+    }
+
+    public void startClientListeningSocket(){
+        try {
+
+            clientlisteningSocket = new ServerSocket(portClientServer, 10, inetAddress);
+
+            //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
+            //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
+            System.out.println("Listening to Port :" + clientlisteningSocket.getLocalPort());
+            ClientLogger.info("Client listens to Port :" + clientlisteningSocket.getLocalPort());
+            System.out.println();
+
+            while (true) {
+                socketForOtherClient = clientlisteningSocket.accept();
+
+                System.out.println("******************************************");
+
+                System.out.println("I am listening ");
+                Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient, ClientNumber));
+                ClientNumber++;
+                acceptClientThread.start();
+                //sendInfoFromClient();
+            }
+
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
         }
 
 
@@ -447,4 +467,131 @@ public class ClientAlpha implements Runnable {
 
     }
 
+    public void startClientLogger(){
+
+        FileHandler fh = null;
+
+        try {
+            fh = new FileHandler("C://temp//AudioStream//Client " + dateNow + ".log", false);
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        }
+        CustomFormatter customFormatter = new CustomFormatter();
+        fh.setFormatter(customFormatter);
+
+        ClientLogger.addHandler(fh);
+        ClientLogger.setLevel(Level.INFO);
+        ClientLogger.info("********************** program starts ******************");
+
+        try {
+            startClientSockets();
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            ClientLogger.severe("InterruptedException " + e.toString());
+            e.printStackTrace();
+        }
+
+        startClientListeningSocket();
+
+        sendMessageToOtherClient();
+
+        getMessageFromOtherClient();
+
+    }
+    
+    public void getMessageFromOtherClient(){
+        
+        String messageFromOtherClient = "";
+
+        //get an input stream from the socket to read data from the server
+        try {
+            buffInForClient = new BufferedReader (new InputStreamReader (socketForOtherClient.getInputStream()));
+            printForOtherClient = new PrintWriter(socketForOtherClient.getOutputStream());
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        }
+
+        //listen to the input from the socket
+        //exit when the order quit is given
+        while(true)
+        {
+            //Read a line in the buffer, wait until something arrive remove the last cr
+            System.out.println("wait message from server...");
+            ClientLogger.info("wait message from server...");
+
+            try {
+                messageFromOtherClient = buffInForClient.readLine().trim();
+            } catch (IOException e) {
+                ClientLogger.severe("IOException " + e.toString());
+                e.printStackTrace();
+            }
+            printForOtherClient.println(messageFromOtherClient);
+            printForOtherClient.flush();
+
+            //display message received by the server
+            System.out.println("\nMessage received from server:\n"+messageFromOtherClient);
+            ClientLogger.info("\nMessage received from server:\n"+messageFromOtherClient);
+
+            //if quit then exit the loop
+            if (messageFromOtherClient.equals("quit"))
+            {
+                System.out.println("\nquit sent from server...");
+                ClientLogger.info("\nquit sent from server...");
+                break;
+            }
+        }
+
+    }
+
+    public void sendMessageToOtherClient(){
+
+        //open the output data stream
+        try {
+            writeForOtherClient = new PrintWriter(socketForOtherClient.getOutputStream());
+            buffToWriteMessage = new BufferedReader (new InputStreamReader (socketForOtherClient.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //create the scanner to accept data from the console
+        Scanner sc = new Scanner(System.in);
+
+        String message_distant = "";
+
+        //loop on the client connection in/out
+        while(true)
+        {
+            //Send a message to the client
+            System.out.println("Send message to client: ");
+            ClientLogger.info("Send message to client: ");
+            String message = sc.nextLine();
+            writeForOtherClient.println(message);
+            ClientLogger.info(message);
+            writeForOtherClient.flush();
+
+            //Read a line from the input buffer, remove the last cr
+            try {
+                message_distant = buffToWriteMessage.readLine().trim();
+            } catch (IOException e) {
+                ClientLogger.severe("IOException " + e.toString());
+                e.printStackTrace();
+            }
+
+            //Display the message sent by the client
+            System.out.println("\nReceive message from client:\n"+message_distant);
+            ClientLogger.info("Receive message from client:"+message_distant);
+
+            //if the order is quit then exit from the loop
+            if (message_distant.equals("quit"))
+            {
+                System.out.println("\nReceived the quit message....");
+                ClientLogger.info("Received the quit message....");
+                break;
+            }
+        }
+    }
 }

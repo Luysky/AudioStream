@@ -10,6 +10,7 @@ public class ClientTwo extends ClientAlpha {
         myMusicRepertory="C://temp//AudioStream2//myMusic";
 
         startClient();
+       // getMessageFromOtherClient();
 
     }
 }

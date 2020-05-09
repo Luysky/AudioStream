@@ -12,6 +12,7 @@ public class ClientOne extends ClientAlpha {
         myMusicRepertory="C://temp//AudioStream//myMusic";
 
         startClient();
+       // sendMessageToOtherClient();
 
     }
 
