@@ -26,11 +26,9 @@ public class Server {
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 1000;
 
-
-
-    private Socket exchangeSocket = null;
+    private Socket serverComClientSocket = null;
     private InetAddress localAddress = null;
-    private ServerSocket listeningSocket = null;
+    private ServerSocket serverListeningSocket = null;
     private String interfaceName = "wlan1"; // ?? à determiner
     private int ClientNumber = 1; // pour le premier client
 
@@ -50,7 +48,7 @@ public class Server {
 
         /**
          * @Thomas
-         * Methode integre la recuperation de la fusee d'information du client
+         * Methode integre la recuperation de la fusee d'information du client (Regroupement d'infor de base du client)
          * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
          * de tous les clients
          */
@@ -60,7 +58,7 @@ public class Server {
 
         InputStream inputStream = null;
         try {
-            inputStream = exchangeSocket.getInputStream();
+            inputStream = serverComClientSocket.getInputStream();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -125,6 +123,11 @@ public class Server {
 
     public void sendSomethingToClient(InetAddress clientIp, int clientPort,Object object) throws IOException {
 
+        /**
+         * @author Thomas
+         * Methode qui va etre utilisee pour envoyer des informations/un objet a un client.
+         */
+
         Socket clientSocket = null;
         try {
             clientSocket = new Socket(clientIp, clientPort);
@@ -144,6 +147,11 @@ public class Server {
 
     public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
 
+        /**
+         * @author Thomas
+         * Methode qui va recuperer l'adresse Ip envoyee par un client
+         */
+
         List<Object>tempList = (List<Object>) clientlist.get(client);
         List<Object>packageList = (List<Object>) tempList.get(1);
         InetAddress temp = (InetAddress) packageList.get(1);
@@ -153,7 +161,12 @@ public class Server {
 
     public int retreivedPortFromClient(List<Object>clientsList, int client){
 
-          List<Object>tempList = (List<Object>) clientsList.get(client);
+        /**
+         * @author Thomas
+         * Methode qui va recuperer l'adresse de port envoyee par un client
+         */
+
+        List<Object>tempList = (List<Object>) clientsList.get(client);
         List<Object>packageList = (List<Object>) tempList.get(1);
         int temp = (int) packageList.get(2);
 
@@ -163,12 +176,17 @@ public class Server {
 
     public void giveMusicList(int clientNumber){
 
+        /**
+         * @author Thomas
+         * Methode qui va recuperer la liste des audios d'un client.
+         */
+
         List<Object>tempList = new ArrayList<>();
         List<Object>packageList = new ArrayList<>();
         List<String>musicList = new ArrayList<>();
 
 
-
+        //A modifier clientNumber
         for(int i = 0; i<clientsList.size();i++){
 
             if(clientNumber==i){
@@ -199,6 +217,7 @@ public class Server {
          * @author Thomas
          * Methode permettant d'afficher une liste de String avec numerotation devant chaque element
          * et substring pour garder uniquement le nom de l'audio.
+         * Ex : 1. Miyagi
          */
 
         int cpt = 1;
@@ -229,41 +248,26 @@ public class Server {
         System.out.println("Server starts");
 
         try {
-            NetworkInterface ni = null;
-            try {
-                ni = NetworkInterface.getByName(interfaceName);
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
 
-            Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-            while (inetAddresses.hasMoreElements()) {
-                InetAddress ia = inetAddresses.nextElement();
+            findConnectionInfo();
 
-                if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
-                    if (!ia.isLoopbackAddress()) {
-                        System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
-                        localAddress = ia;
-                    }
-                }
-            }
 
             try {
 
-                listeningSocket = new ServerSocket(17257, 10, localAddress);
+                serverListeningSocket = new ServerSocket(17257, 10, localAddress);
 
                 //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
                 //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
-                System.out.println("Listening to Port :" + listeningSocket.getLocalPort());
+                System.out.println("Listening to Port :" + serverListeningSocket.getLocalPort());
                 System.out.println();
 
                 while (true) {
-                    exchangeSocket = listeningSocket.accept();
+                    serverComClientSocket = serverListeningSocket.accept();
 
                     System.out.println("******************************************");
 
                     System.out.println("I am listening ");
-                    Thread acceptClientThread = new Thread(new AcceptClient(exchangeSocket, ClientNumber));
+                    Thread acceptClientThread = new Thread(new AcceptClient(serverComClientSocket, ClientNumber));
                     ClientNumber++;
                     acceptClientThread.start();
                     receiveInfoFromClient();
@@ -281,4 +285,34 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    public void findConnectionInfo(){
+
+        /**
+         * @author Thomas
+         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
+         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
+         */
+
+        NetworkInterface ni = null;
+        try {
+            ni = NetworkInterface.getByName(interfaceName);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress ia = inetAddresses.nextElement();
+
+            if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
+                if (!ia.isLoopbackAddress()) {
+                    System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
+                    localAddress = ia;
+                }
+            }
+        }
+
+    }
+
 }
