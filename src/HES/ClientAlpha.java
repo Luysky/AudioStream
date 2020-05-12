@@ -23,6 +23,9 @@ public class ClientAlpha implements Runnable {
      */
     private final static Logger ClientLogger = Logger.getLogger("ClientLog");
 
+    private InetAddress localAddress = null;
+    private String interfaceName = "wlan1"; // ?? à determiner
+
     private InetAddress serverAddress;
     private InetAddress inetAddress = null;
 
@@ -30,14 +33,19 @@ public class ClientAlpha implements Runnable {
     protected int portServer = 17257;
 
     //Client récupère le Socket qui est distribué à lui par le Serveur
-    protected Socket clientComServerSocket;
+
 
     private ServerSocket clientlisteningSocket;
+    private Socket clientExchangeSocket;
+
+    protected Socket clientComServerSocket;
+    private Socket socketForOtherClient;
+
     protected int portClientServer;
     protected int portClientClient;
+
     private int ClientNumber = 1;
-    private Socket clientSocket;
-    private Socket socketForOtherClient;
+
 
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
@@ -50,14 +58,14 @@ public class ClientAlpha implements Runnable {
     protected String clientName ="default";
     private String questionOne = "Veuillez donner votre nom";
 
-    Calendar currentDate = Calendar.getInstance();
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
-    String dateNow = formatter.format(currentDate.getTime());
+    private Calendar currentDate = Calendar.getInstance();
+    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
+    private String dateNow = formatter.format(currentDate.getTime());
     
-    BufferedReader buffInForClient;
-    PrintWriter printForOtherClient;
-    PrintWriter writeForOtherClient;
-    BufferedReader buffToWriteMessage;
+    private BufferedReader buffInForClient;
+    private BufferedReader buffToWriteMessage;
+    private PrintWriter printForOtherClient;
+    private PrintWriter writeForOtherClient;
 
 
     public ClientAlpha() {
@@ -97,65 +105,232 @@ public class ClientAlpha implements Runnable {
          * (Genre demande du nom utilisateur ou chemin d'acces repertoire audio)
          */
 
+        findConnectionInfo();
         startClientLogger();
+        listening();
 
     }
 
+    public void startClientLogger(){
+
+        FileHandler fh = null;
+
+        try {
+            fh = new FileHandler("C://temp//AudioStream//Client " + dateNow + ".log", false);
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        }
+        CustomFormatter customFormatter = new CustomFormatter();
+        fh.setFormatter(customFormatter);
+
+        ClientLogger.addHandler(fh);
+        ClientLogger.setLevel(Level.INFO);
+        ClientLogger.info("********************** program starts ******************");
+
+        try {
+
+            //C'est l'envoie de la fusée
+            startClientSockets();
 
 
-    //deprecated - a supprimer lorsqu'on aura integrer le syteme audio ailleurs
-    @Override
-    public void run() {
+        } catch (IOException e) {
+            ClientLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            ClientLogger.severe("InterruptedException " + e.toString());
+            e.printStackTrace();
+        }
 
-        System.out.println("Client online");
+        System.out.println("Port Server : "+portServer);
+        System.out.println("Port Clientclient "+portClientClient);
+        System.out.println("Port ClientServer "+portClientServer);
 
+        //startClientListeningSocket();
+
+
+
+
+        //sendMessageToOtherClient();
+
+        //getMessageFromOtherClient();
+
+    }
+
+    public void startClientSockets() throws IOException, InterruptedException {
+
+        /**
+         * @author_Thomas_et_Marina
+         * Methode servant a initier les Socket de Server et d'echange pour les clients
+         */
+
+        System.out.println("Client name:  " + clientName);
 
         try{
+            serverAddress = findIpAddress();
+            //System.out.println("Get the address of the server : "+ serverAddress);
+            ClientLogger.info("The address of the server : " + serverAddress);
 
+            clientExchangeSocket = new Socket(serverAddress, 17257);
+            //System.out.println("I got connection to " + serverAddress);
+            ClientLogger.info("We got connection to " + serverAddress);
+
+
+            //On reçoit un port client aléatoirement
+
+            portClientServer = clientExchangeSocket.getLocalPort();
+            //System.out.println("clientPort " + portClientServer);
+            ClientLogger.info("client port " + portClientServer);
+
+            /*
+            // now we wait for something ??
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            Socket exchangeSocket = new Socket(findIpAddress(), portServer);
-            System.out.println("I am connected");
+             */
 
-            InputStream is = new BufferedInputStream(exchangeSocket.getInputStream());
+            OutputStream outputStream = clientExchangeSocket.getOutputStream();
 
-            try {
-                AudioPlayer player = new AudioPlayer(is);
-                player.play();
-                try {
-                    Thread.sleep(player.clip.getMicrosecondLength());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+            objectOutputStream.writeObject(collectMyInfo());
+
+            //clientExchangeSocket.close();
+
+
+
+
+        }catch(UnknownHostException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            System.out.println("server connection error, dying.....");
+        }catch (NullPointerException e){
+            System.out.println("Connection interrupted with the server");
+        }
+
+
+    }
+
+    public void findConnectionInfo(){
+
+        /**
+         * @author Thomas
+         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
+         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
+         */
+
+        NetworkInterface ni = null;
+        try {
+            ni = NetworkInterface.getByName(interfaceName);
+        } catch (SocketException e) {
+            System.out.println("Connection Timed out");
+            ClientLogger.severe("Connection Timed out");
+        }
+
+        Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress ia = inetAddresses.nextElement();
+
+            if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
+                if (!ia.isLoopbackAddress()) {
+                    System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
+                    localAddress = ia;
                 }
+            }
+        }
 
-            } catch (UnsupportedAudioFileException e) {
-                e.printStackTrace();
-            } catch (LineUnavailableException e) {
-                e.printStackTrace();
+    }
+
+    public void listening(){
+
+        try {
+
+            clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
+            //ClientLogger.info("Default Timeout :" + clientlisteningSocket.getSoTimeout());
+            ClientLogger.info("Client listening to port :" + clientlisteningSocket.getLocalPort());
+            System.out.println();
+
+            while (true) {
+
+                clientExchangeSocket = clientlisteningSocket.accept();
+
+                System.out.println("******************************************");
+
+                System.out.println("I am listening ");
+                Thread acceptClientThread = new Thread(new AcceptClient(clientExchangeSocket, ClientNumber));
+                ClientNumber++;
+                acceptClientThread.start();
+
+                receivedInfo();
+
+
+
+                //receiveInfoFromClient();
+                //retreivedIpFromClient(clientsList,0);
+                //System.out.println(musicString(giveMusicList(0)));
+
             }
 
+        } catch (IOException e) {
+            e.printStackTrace();
+            ClientLogger.severe("IO exception " + e.toString());
+        }
 
-            /*FileOutputStream fos = new FileOutputStream(path);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
+    }
 
-            int bytesRead = is.read(mybytearray, 0, mybytearray.length);
-            bos.write(mybytearray, 0, mybytearray.length);
+    public void receivedInfo(){
 
-            bos.close(); */
+        /**
+         * @author Thomas
+         * Methode qui va permettre de recuperer des informations entrantes venant du server.
+         * A MODIFIER POUR TRANSFORMATION UTILISATION DE LA LISTE D'OBJET
+         */
+
+        System.out.println("Incoming message");
 
 
-            is.close();
-            exchangeSocket.close();
-
-
-        }catch(IOException e){
+        InputStream inputStream = null;
+        try {
+            inputStream = clientExchangeSocket.getInputStream();
+        } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // create a DataInputStream so we can read data from it.
+
+        ObjectInputStream objectInputStream = null;
+        try {
+            objectInputStream = new ObjectInputStream(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        // Recuperation des informations de la fusee venant du Server
+
+        String incomingMessage = null;
+
+
+
+        try {
+            incomingMessage = (String) objectInputStream.readObject();
+
+            System.out.println();
+            System.out.println("Menu Audio :");
+            System.out.println(incomingMessage);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
     }
+
+
 
 
     //protected String findIpAddress(){
@@ -184,7 +359,6 @@ public class ClientAlpha implements Runnable {
             e.printStackTrace();
         }
 
-        //return localAddress.getHostAddress();
         return localAddress;
     }
 
@@ -233,8 +407,6 @@ public class ClientAlpha implements Runnable {
             myMusic = walk.map(x -> x.toString())
                     .filter(f -> f.endsWith(".wav")).collect(Collectors.toList());
 
-            //impression de la liste
-            //myMusic.forEach(System.out::println);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -284,69 +456,14 @@ public class ClientAlpha implements Runnable {
         List<Object> myCollectedInfo = new ArrayList<>();
         myCollectedInfo.add(clientName);
         myCollectedInfo.add(findIpAddress());
-        //A ENVOYER portClientClient
-        //myCollectedInfo.add(portClientServer);
+        myCollectedInfo.add(portClientClient);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 
         return myCollectedInfo;
     }
 
-    public void startClientSockets() throws IOException, InterruptedException {
 
-        /**
-         * @author_Thomas_et_Marina
-         * Methode servant a initier les Socket de Server et d'echange pour les clients
-         */
-
-        System.out.println("Client name:  " + clientName);
-
-        try{
-            serverAddress = findIpAddress();
-            System.out.println("Get the address of the server : "+ serverAddress);
-            ClientLogger.info("The address of the server : " + serverAddress);
-
-            clientSocket = new Socket(serverAddress, 17257);
-            System.out.println("I got connection to " + serverAddress);
-            ClientLogger.info("We got connection to " + serverAddress);
-
-
-            //On choisi un port client aléatoirement
-
-            portClientServer = clientSocket.getLocalPort();
-            System.out.println("clientPort " + portClientServer);
-            ClientLogger.info("client port " + portClientServer);
-
-            /*
-            // now we wait for something ??
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-             */
-
-            OutputStream outputStream = clientSocket.getOutputStream();
-
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-
-            objectOutputStream.writeObject(collectMyInfo());
-
-
-
-
-
-        }catch(UnknownHostException e){
-            e.printStackTrace();
-        }catch (IOException e){
-            System.out.println("server connection error, dying.....");
-        }catch (NullPointerException e){
-            System.out.println("Connection interrupted with the server");
-        }
-
-
-    }
 
     public void startClientListeningSocket(){
         try {
@@ -355,7 +472,7 @@ public class ClientAlpha implements Runnable {
 
             //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
             //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
-            System.out.println("Listening to Port :" + clientlisteningSocket.getLocalPort());
+            //System.out.println("Listening to Port :" + clientlisteningSocket.getLocalPort());
             ClientLogger.info("Client listens to Port :" + clientlisteningSocket.getLocalPort());
             System.out.println();
 
@@ -366,9 +483,10 @@ public class ClientAlpha implements Runnable {
 
                 System.out.println("I am listening ");
                 Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient, ClientNumber));
-                ClientNumber++;
                 acceptClientThread.start();
-                //sendInfoFromClient();
+                listening();
+
+
             }
 
         } catch (IOException e) {
@@ -379,48 +497,7 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void receivedInfo(){
 
-        /**
-         * @author Thomas
-         * Methode qui va permettre de recuperer des informations entrantes venant du server.
-         * A MODIFIER POUR TRANSFORMATION UTILISATION DE LA LISTE D'OBJET
-         */
-
-        System.out.println("A client is connected");
-
-
-        InputStream inputStream = null;
-        try {
-            inputStream = clientComServerSocket.getInputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // create a DataInputStream so we can read data from it.
-
-        ObjectInputStream objectInputStream = null;
-        try {
-            objectInputStream = new ObjectInputStream(inputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-        // Recuperation des informations de la fusee venant du Server
-
-        List<Object> incomingRocket = null;
-        try {
-            incomingRocket = (List<Object>) objectInputStream.readObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-
-
-    }
 
 
     public void listIterator(List<String> c) {
@@ -467,40 +544,7 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void startClientLogger(){
 
-        FileHandler fh = null;
-
-        try {
-            fh = new FileHandler("C://temp//AudioStream//Client " + dateNow + ".log", false);
-        } catch (IOException e) {
-            ClientLogger.severe("IOException " + e.toString());
-            e.printStackTrace();
-        }
-        CustomFormatter customFormatter = new CustomFormatter();
-        fh.setFormatter(customFormatter);
-
-        ClientLogger.addHandler(fh);
-        ClientLogger.setLevel(Level.INFO);
-        ClientLogger.info("********************** program starts ******************");
-
-        try {
-            startClientSockets();
-        } catch (IOException e) {
-            ClientLogger.severe("IOException " + e.toString());
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            ClientLogger.severe("InterruptedException " + e.toString());
-            e.printStackTrace();
-        }
-
-        startClientListeningSocket();
-
-        sendMessageToOtherClient();
-
-        getMessageFromOtherClient();
-
-    }
     
     public void getMessageFromOtherClient(){
         
@@ -594,4 +638,59 @@ public class ClientAlpha implements Runnable {
             }
         }
     }
+
+    //deprecated - a supprimer lorsqu'on aura integrer le syteme audio ailleurs
+    @Override
+    public void run() {
+
+        System.out.println("Client online");
+
+
+        try{
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Socket exchangeSocket = new Socket(findIpAddress(), portServer);
+            System.out.println("I am connected");
+
+            InputStream is = new BufferedInputStream(exchangeSocket.getInputStream());
+
+            try {
+                AudioPlayer player = new AudioPlayer(is);
+                player.play();
+                try {
+                    Thread.sleep(player.clip.getMicrosecondLength());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            } catch (UnsupportedAudioFileException e) {
+                e.printStackTrace();
+            } catch (LineUnavailableException e) {
+                e.printStackTrace();
+            }
+
+
+            /*FileOutputStream fos = new FileOutputStream(path);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+
+            int bytesRead = is.read(mybytearray, 0, mybytearray.length);
+            bos.write(mybytearray, 0, mybytearray.length);
+
+            bos.close(); */
+
+
+            is.close();
+            exchangeSocket.close();
+
+
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
 }

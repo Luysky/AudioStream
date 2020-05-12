@@ -9,6 +9,8 @@ public class ClientTwo extends ClientAlpha {
         //clientName="Marshasha";
         myMusicRepertory="C://temp//AudioStream2//myMusic";
 
+        portClientClient = 25250;
+
         startClient();
        // getMessageFromOtherClient();
 

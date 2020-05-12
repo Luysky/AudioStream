@@ -11,6 +11,8 @@ public class ClientOne extends ClientAlpha {
         //clientName="Luysky";
         myMusicRepertory="C://temp//AudioStream//myMusic";
 
+        portClientClient = 25245;
+
         startClient();
        // sendMessageToOtherClient();
 

@@ -12,11 +12,6 @@ import java.util.logging.Logger;
 public class Server {
 
     private final static Logger ServerLogger = Logger.getLogger("ServerLog");
-    //Chemin d'accès files audio Marina
-    //private String path = "C://temp//AudioStream//myMusic//audio.wav";
-
-    //Chemin d'accès files audio Thomas
-    private String path = "C://temp//AudioStream//myMusic//David Bowie-Helden.wav";
 
     //Chemin d'accès log Thomas
     //private String myLog = "c://temp//AudioStream//my.log";
@@ -25,11 +20,12 @@ public class Server {
     //private String myLog = "C://toSend//my.log";
 
     private List<Object> clientsList = new ArrayList<>();
-    private int idClient = 1000;
+    private int idClient = 1;
 
-    private Socket serverComClientSocket = null;
-    private InetAddress localAddress = null;
     private ServerSocket serverListeningSocket = null;
+    private Socket serverExchangeSocket = null;
+
+    private InetAddress localAddress = null;
     private String interfaceName = "wlan1"; // ?? à determiner
     private int ClientNumber = 1; // pour le premier client
 
@@ -37,11 +33,14 @@ public class Server {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
     private String dateNow = dateFormat.format(currentDate.getTime());
 
+    private InputStream inputStream = null;
+    private ObjectInputStream objectInputStream = null;
+
 
 
     public Server() {
 
-        startServerLogging();
+        startServerLogger();
         //sendInfoFromClient();
 
         //Si tu actives uniquement run() dans server et client la musique se lance
@@ -49,6 +48,112 @@ public class Server {
         //run();
 
 
+    }
+
+    public void startServerLogger(){
+
+
+        FileHandler fh = null;
+        try {
+            fh = new FileHandler("C://temp//AudioStream//Server" + dateNow + ".log", false);
+        } catch (IOException e) {
+            e.printStackTrace();
+            ServerLogger.severe("IOException of FileHandler " + e.toString());
+        }
+        CustomFormatter customFormatter = new CustomFormatter();
+        fh.setFormatter(customFormatter);
+
+        ServerLogger.addHandler(fh);
+        ServerLogger.setLevel(Level.INFO);
+        ServerLogger.info("******************** Program starts ********************");
+
+        findConnectionInfo();
+        startServerSocket();
+
+
+    }
+
+    public void findConnectionInfo(){
+
+        /**
+         * @author Thomas
+         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
+         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
+         */
+
+        NetworkInterface ni = null;
+        try {
+            ni = NetworkInterface.getByName(interfaceName);
+        } catch (SocketException e) {
+            System.out.println("Connection Timed out");
+            ServerLogger.severe("Connection Timed out");
+        }
+
+        Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress ia = inetAddresses.nextElement();
+
+            if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
+                if (!ia.isLoopbackAddress()) {
+                    System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
+                    localAddress = ia;
+                }
+            }
+        }
+
+    }
+
+    public void startServerSocket() {
+
+        /**
+         * @Thomas_et_Marina
+         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
+         * le Serveur reste toujours en écoute et accept tous les clients qui se connectent.
+         */
+
+
+        try {
+
+            findConnectionInfo();
+
+
+            try {
+
+                serverListeningSocket = new ServerSocket(17257, 10, localAddress);
+                ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
+                ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
+                System.out.println();
+
+                while (true) {
+                    serverExchangeSocket = serverListeningSocket.accept();
+
+                    System.out.println("******************************************");
+
+                    System.out.println("I am listening ");
+                    Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket, ClientNumber));
+                    ClientNumber++;
+                    acceptClientThread.start();
+                    receiveInfoFromClient();
+
+                    //retreivedIpFromClient(clientsList,0);
+
+                    //System.out.println(musicString(giveMusicList(0)));
+
+                    sendMusicMenu();
+                    System.out.println("Test j'ai passé sendMusic");
+
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                ServerLogger.severe("IO exception " + e.toString());
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            ServerLogger.severe("Exception " + e.toString());
+        }
     }
 
     public void receiveInfoFromClient() {
@@ -60,13 +165,13 @@ public class Server {
          * de tous les clients
          */
 
-        System.out.println("A client is connected");
-        ServerLogger.info("A Client is connected");
+        //System.out.println("A client is connected");
+        ServerLogger.info("A client is connected");
 
 
         InputStream inputStream = null;
         try {
-            inputStream = serverComClientSocket.getInputStream();
+            inputStream = serverExchangeSocket.getInputStream();
         } catch (IOException e) {
             ServerLogger.severe("IO Exception in InputStream " + e.toString());
         }
@@ -110,8 +215,8 @@ public class Server {
         System.out.println("Client Name : " + recupInfos.get(0));
         System.out.println("Client Ip : " + recupInfos.get(1));
         ServerLogger.info("Client IP :" + recupInfos.get(1));
-        System.out.println("Client Port : " + recupInfos.get(1)); // il n'ya plus des port, j'ai changé le numero du tableau
-        System.out.println("Client music :" + recupInfos.get(2));
+        System.out.println("Client Port : " + recupInfos.get(2)); // il n'ya plus des port, j'ai changé le numero du tableau
+        System.out.println("Client music :" + recupInfos.get(3));
         System.out.println();
 
         //List<String> clientMusicList;
@@ -153,6 +258,104 @@ public class Server {
 
     }
 
+    public void writeToClient (InetAddress clientIp, int clientPort,List<String> musicList) throws IOException {
+
+        InputStream iS = serverExchangeSocket.getInputStream();
+        InputStreamReader iSr = new InputStreamReader(iS);
+        BufferedReader buffin = new BufferedReader(iSr);
+
+        PrintWriter pout = new PrintWriter(serverExchangeSocket.getOutputStream());
+
+
+
+        String messageToSend = "Le server te salue !";
+        pout.println(messageToSend);
+
+    }
+
+
+
+    public void sendMusicMenu() throws IOException {
+
+        for(int i = 0; i<clientsList.size(); i++) {
+
+            InetAddress clientIp = retreivedIpFromClient(clientsList, i);
+            int port = retreivedPortFromClient(clientsList, i);
+
+            String message = musicString(giveMusicList(i));
+
+            if(message!="") {
+                sendSomethingToClient(clientIp, port, message);
+            }
+            else{
+                String sorry = "Aucun audio actuellement disponbile";
+                sendSomethingToClient(clientIp,port,sorry);
+            }
+        }
+
+
+    }
+
+    public List<String> giveMusicList(int clientNumber){
+
+        /**
+         * @author Thomas
+         * Methode qui va recuperer la liste des audios d'un client.
+         */
+
+        List<Object>tempList = new ArrayList<>();
+        List<Object>packageList = new ArrayList<>();
+        List<String>musicList = new ArrayList<>();
+
+        for(int i = 0; i<clientsList.size();i++){
+
+            if(clientNumber==i){
+                System.out.println("Je passe par continue");
+                continue;
+            }
+
+            else {
+                //On ouvre le bon clientList
+                tempList = (List<Object>) clientsList.get(i);
+                //clientListNr++;
+
+                //On recupere la liste d'infos du client
+                packageList = (List<Object>) tempList.get(1);
+
+                //On selectionne la liste de music et on l'ajoute au menu des music
+                musicList = (List<String>) packageList.get(3);
+            }
+        }
+
+        return musicList;
+
+    }
+
+    public String musicString (List<String> music){
+
+
+        String message = "";
+        String messageTemp = "";
+
+        int cpt = 0;
+
+
+        Iterator<String> j = music.iterator();
+
+        while (j.hasNext()) {
+
+            messageTemp = j.next();
+            messageTemp = messageTemp.substring(messageTemp.indexOf("myMusic") + 8, messageTemp.lastIndexOf("."));
+            cpt++;
+
+            message += (cpt+". "+ messageTemp+"\n");
+        }
+
+
+        return message;
+
+    }
+
 
     public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
 
@@ -183,42 +386,8 @@ public class Server {
 
     }
 
-    public void giveMusicList(int clientNumber){
-
-        /**
-         * @author Thomas
-         * Methode qui va recuperer la liste des audios d'un client.
-         */
-
-        List<Object>tempList = new ArrayList<>();
-        List<Object>packageList = new ArrayList<>();
-        List<String>musicList = new ArrayList<>();
 
 
-        //A modifier clientNumber
-        for(int i = 0; i<clientsList.size();i++){
-
-            if(clientNumber==i){
-                i++;
-            }
-
-            else {
-                //On ouvre le bon clientList
-                tempList = (List<Object>) clientsList.get(i);
-
-                //On récupère la liste d'infos du client
-                packageList = (List<Object>) tempList.get(1);
-
-                //On sélectionne la liste de music et on l'ajoute au menu des music
-                musicList = (List<String>) packageList.get(3);
-            }
-
-            listIterator(musicList);
-
-        }
-
-
-    }
 
     public void listIterator(List<String> c) {
 
@@ -246,109 +415,10 @@ public class Server {
     }
 
 
-    public void startSocketServer() {
-
-        /**
-         * @Thomas_et_Marina
-         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
-         * le Serveur reste toujours en écoute et accept tous les clients qui se connectent.
-         */
-
-        System.out.println("Server starts");
-
-        try {
-
-            findConnectionInfo();
 
 
-            try {
-
-                serverListeningSocket = new ServerSocket(17257, 10, localAddress);
-
-                System.out.println("Default Timeout :" + serverListeningSocket.getSoTimeout());
-                ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
-                //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
-                System.out.println("Listening to Port :" + serverListeningSocket.getLocalPort());
-                ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
-                System.out.println();
-
-                while (true) {
-                    serverComClientSocket = serverListeningSocket.accept();
-
-                    System.out.println("******************************************");
-
-                    System.out.println("I am listening ");
-                    Thread acceptClientThread = new Thread(new AcceptClient(serverComClientSocket, ClientNumber));
-                    ClientNumber++;
-                    acceptClientThread.start();
-                    receiveInfoFromClient();
-
-                    retreivedIpFromClient(clientsList,0);
-
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                ServerLogger.severe("IO exception " + e.toString());
-            }
 
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            ServerLogger.severe("Exception " + e.toString());
-        }
-    }
 
-    public void findConnectionInfo(){
-
-        /**
-         * @author Thomas
-         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
-         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
-         */
-
-        NetworkInterface ni = null;
-        try {
-            ni = NetworkInterface.getByName(interfaceName);
-        } catch (SocketException e) {
-            System.out.println("Connection Timed out");
-            ServerLogger.severe("Connection Timed out");
-        }
-
-        Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-        while (inetAddresses.hasMoreElements()) {
-            InetAddress ia = inetAddresses.nextElement();
-
-            if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
-                if (!ia.isLoopbackAddress()) {
-                    System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
-                    localAddress = ia;
-                }
-            }
-        }
-
-    }
-
-    public void startServerLogging(){
-
-
-            FileHandler fh = null;
-            try {
-                fh = new FileHandler("C://temp//AudioStream//Server" + dateNow + ".log", false);
-            } catch (IOException e) {
-                e.printStackTrace();
-                ServerLogger.severe("IOException of FileHandler " + e.toString());
-            }
-            CustomFormatter customFormatter = new CustomFormatter();
-            fh.setFormatter(customFormatter);
-
-            ServerLogger.addHandler(fh);
-            ServerLogger.setLevel(Level.INFO);
-            ServerLogger.info("******************** program srarts ********************");
-
-            findConnectionInfo();
-            startSocketServer();
-
-    }
 
 }
