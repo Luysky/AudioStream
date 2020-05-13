@@ -9,15 +9,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class Server {
+public class Server implements Runnable {
 
     private final static Logger ServerLogger = Logger.getLogger("ServerLog");
-
-    //Chemin d'accès log Thomas
-    //private String myLog = "c://temp//AudioStream//my.log";
-
-    //Chemin d'accès log Marina
-    //private String myLog = "C://toSend//my.log";
 
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 1;
@@ -36,6 +30,9 @@ public class Server {
     private InputStream inputStream = null;
     private ObjectInputStream objectInputStream = null;
 
+    private String clientActive = null;
+    private String clientAnswer = null;
+
 
 
     public Server() {
@@ -47,6 +44,7 @@ public class Server {
         //NE PAS ACTIVER EN MEME TEMPS QUE LE RESTE DREPRECATED
         //run();
 
+        //Thread t1 = new Thread(new Server());
 
     }
 
@@ -69,6 +67,13 @@ public class Server {
 
         findConnectionInfo();
         startServerSocket();
+
+
+        try {
+            receiveMessageFromClient();
+        } catch (IOException e) {
+            e.printStackTrace();
+        };
 
 
     }
@@ -116,7 +121,6 @@ public class Server {
 
             findConnectionInfo();
 
-
             try {
 
                 serverListeningSocket = new ServerSocket(17257, 10, localAddress);
@@ -124,7 +128,11 @@ public class Server {
                 ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
                 System.out.println();
 
-                while (true) {
+                boolean useOfMethode = true;
+                int cptloop = 0;
+
+                //while (true) {
+                while (useOfMethode){
                     serverExchangeSocket = serverListeningSocket.accept();
 
                     System.out.println("******************************************");
@@ -135,21 +143,26 @@ public class Server {
                     acceptClientThread.start();
                     receiveInfoFromClient();
 
-                    //retreivedIpFromClient(clientsList,0);
-
-                    //System.out.println(musicString(giveMusicList(0)));
 
                     sendMusicMenu();
-                    System.out.println("Test j'ai passé sendMusic");
 
+                    cptloop++;
+
+                    if (cptloop==2){
+                        useOfMethode=false;
+                    }
+
+
+                    serverExchangeSocket.close();
+
+                    //run();
+                    //checkIfClientActif();
                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
                 ServerLogger.severe("IO exception " + e.toString());
             }
-
-
         } catch (Exception e) {
             e.printStackTrace();
             ServerLogger.severe("Exception " + e.toString());
@@ -169,7 +182,7 @@ public class Server {
         ServerLogger.info("A client is connected");
 
 
-        InputStream inputStream = null;
+        //InputStream inputStream = null;
         try {
             inputStream = serverExchangeSocket.getInputStream();
         } catch (IOException e) {
@@ -178,7 +191,7 @@ public class Server {
 
         // create a DataInputStream so we can read data from it.
 
-        ObjectInputStream objectInputStream = null;
+        //ObjectInputStream objectInputStream = null;
         try {
             objectInputStream = new ObjectInputStream(inputStream);
         } catch (IOException e) {
@@ -219,21 +232,135 @@ public class Server {
         System.out.println("Client music :" + recupInfos.get(3));
         System.out.println();
 
-        //List<String> clientMusicList;
-        //clientMusicList = (List<String>) recupInfos.get(2);
-        //System.out.println("Chanson numero 1 : " + clientMusicList.get(1));
-
-        //List<Integer> clientMusicTime;
-        //clientMusicTime = (List<Integer>) recupInfos.get(3);
-        //System.out.println("Durée de la chanson numero 1 : " + clientMusicTime.get(1));
-
-        //String input = clientMusicList.get(1);
-        //input = input.substring(input.indexOf("myMusic")+8, input.lastIndexOf("."));
-
-        //System.out.println(input);
-        //giveMusicList(1);
 
     }
+
+    public List<Object> receiveMessageFromClient() throws IOException {
+
+        /**
+         * @Thomas
+         * methode qui sert a recevoir le numero de selection audio venant du client
+         * NE FONCTIONNE PAS EN THREAD !! UNIQUEMENT PREMIER CHOIX DISPONIBLE
+         */
+
+
+        boolean methodeActiv = true;
+        List<Object> incomingMessage = null;
+
+        while(methodeActiv) {
+
+            serverExchangeSocket = serverListeningSocket.accept();
+
+            ServerLogger.info("A client is connected");
+
+            try {
+                InputStream  inputStream2 = serverExchangeSocket.getInputStream();
+                ObjectInputStream objectInputStream2 = new ObjectInputStream(inputStream2);
+                incomingMessage = (List<Object>) objectInputStream2.readObject();
+
+            } catch (IOException e) {
+                ServerLogger.severe("IO Exception in ObjectInputStream " + e.toString());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+
+            System.out.println("Receiving from client :");
+            System.out.println("Audio selected from :");
+
+            System.out.println(incomingMessage.get(0));
+
+            System.out.println("Audio number :");
+            System.out.println(incomingMessage.get(1));
+
+
+       }
+
+
+
+        return incomingMessage;
+    }
+
+
+    public void findSelectedMusic(int numero){
+
+
+
+    }
+
+
+    public void checkIfClientActif() throws IOException {
+
+        /**
+         * @author Thomas
+         * methode qui va permettre de faire un check de presence de chaque client
+         * chaque 10 secondes.
+         *
+         * INACTIVE NECESSITE UN THREAD
+         */
+
+        for(int i = 0; i<clientsList.size(); i++) {
+
+            InetAddress clientIp = retreivedIpFromClient(clientsList, i);
+            int port = retreivedPortFromClient(clientsList, i);
+
+
+            sendCheckToClient(clientIp,port);
+
+        }
+
+    }
+
+
+    public void sendCheckToClient (InetAddress clientIp, int clientPort){
+
+        /**
+         * @author Thomas
+         * methode qui va servir au server de control de la connection d'un client
+         * Automatiquement chaque 10 seconces le server va echanger des messages avec tous les clients
+         * il va simplement envoyer un message pout avec la lettre a
+         * et le client va automatiquement lui envoyer en retour cettte lettre
+         * si le client se deconnecte la methode va le detecter et va generer un message d'erreur
+         *
+         * INACTIVE CAR NECESSITE UN THREAD
+         * A MODIFIER POUR INTEGRER AVEC LIST MUSIC, ETC
+         */
+
+
+        try {
+            serverExchangeSocket = serverListeningSocket.accept();
+            InputStream iS = serverExchangeSocket.getInputStream();
+            InputStreamReader iSr = new InputStreamReader(iS);
+            BufferedReader buffin = new BufferedReader(iSr);
+            PrintWriter pout = new PrintWriter(serverExchangeSocket.getOutputStream());
+
+            try {
+                while (true) {
+                    clientActive="a";
+                    pout.println(clientActive);
+                    pout.flush();
+                    System.out.println("Message send to client : "+clientActive);
+                    clientAnswer = buffin.readLine();
+                    System.out.println("Received message from client : " + clientAnswer);
+
+                    Thread.sleep(10 * 1000);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            pout.flush();
+            pout.close();
+
+        }
+        catch (SocketException e) {
+            System.out.println("Client is unreachable");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void sendSomethingToClient(InetAddress clientIp, int clientPort,Object object) throws IOException {
 
@@ -258,24 +385,14 @@ public class Server {
 
     }
 
-    public void writeToClient (InetAddress clientIp, int clientPort,List<String> musicList) throws IOException {
-
-        InputStream iS = serverExchangeSocket.getInputStream();
-        InputStreamReader iSr = new InputStreamReader(iS);
-        BufferedReader buffin = new BufferedReader(iSr);
-
-        PrintWriter pout = new PrintWriter(serverExchangeSocket.getOutputStream());
-
-
-
-        String messageToSend = "Le server te salue !";
-        pout.println(messageToSend);
-
-    }
-
-
 
     public void sendMusicMenu() throws IOException {
+
+        /**
+         * @author Thomas
+         * methode utilisee pour envoyer a chaque client un menu de musique
+         * Il enverra uniquement la liste contenant les musiques des autres clients.
+         */
 
         for(int i = 0; i<clientsList.size(); i++) {
 
@@ -310,7 +427,6 @@ public class Server {
         for(int i = 0; i<clientsList.size();i++){
 
             if(clientNumber==i){
-                System.out.println("Je passe par continue");
                 continue;
             }
 
@@ -332,6 +448,14 @@ public class Server {
     }
 
     public String musicString (List<String> music){
+
+        /**
+         * @author Thomas
+         * sert a retourner une liste de chanson
+         * A MODIFIER POUR UTILISATION D UN CPT QUI NE COMMENCE PAS SYSTEMATIQUEMENT
+         * A ZERO
+         * sinon 1,2,3,1,2,1,2,3
+         */
 
 
         String message = "";
@@ -415,10 +539,25 @@ public class Server {
     }
 
 
+    @Override
+    public void run() {
+
+        /**
+         * @author Thomas
+         * methode inactive tentative d'utilisation des threads
+         */
+
+        try {
+
+            sendMusicMenu();
+            checkIfClientActif();
 
 
+            System.out.println("J'ai passé dans le thread");
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-
-
+    }
 }

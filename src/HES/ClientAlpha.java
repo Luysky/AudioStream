@@ -1,7 +1,5 @@
 package HES;
 
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
@@ -30,7 +28,7 @@ public class ClientAlpha implements Runnable {
     private InetAddress inetAddress = null;
 
     //portServer est fixe car connu par le programme
-    protected int portServer = 17257;
+    protected int serverPort = 17257;
 
     //Client récupère le Socket qui est distribué à lui par le Serveur
 
@@ -45,6 +43,8 @@ public class ClientAlpha implements Runnable {
     protected int portClientClient;
 
     private int ClientNumber = 1;
+    private String incomingMessage = "";
+
 
 
     //portClient est fixe également
@@ -67,17 +67,30 @@ public class ClientAlpha implements Runnable {
     private PrintWriter printForOtherClient;
     private PrintWriter writeForOtherClient;
 
+    private int selectedMusic = 0;
+
 
     public ClientAlpha() {
 
 
-        clientName=myChoice(questionOne);
-
 
     }
 
+    public void clientMenu(){
 
-    private String myChoice (String question){
+        /**
+         * @Thomas
+         * methode servant uniquement a lancer le programme avec les premieres etapes et methodes
+         */
+
+        clientName=myChoice(questionOne);
+        startClient();
+
+        //Thread t = new Thread(new ClientAlpha());
+    }
+
+
+    private String myChoice(String question){
 
         /**
          * @Thomas
@@ -95,6 +108,33 @@ public class ClientAlpha implements Runnable {
         return choice;
     }
 
+
+    public int musicChoice(){
+
+
+        Scanner scan = new Scanner(System.in);
+
+        int myChoice =0;
+
+        System.out.println("Veuillez saisir le numero de l'audio que vous désirez : ");
+
+        try {
+
+            myChoice = scan.nextInt();
+
+
+        } catch (InputMismatchException e) {
+            System.out.println("Uniquement un chiffre !");
+            scan.next();
+
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Chiffre indiponible !");
+            scan.next();
+        }
+
+        return myChoice;
+    }
+
     protected void startClient(){
 
         /**
@@ -108,6 +148,25 @@ public class ClientAlpha implements Runnable {
         findConnectionInfo();
         startClientLogger();
         listening();
+
+        System.out.println("Sending selection to Server");
+
+        List<Object>mySelection = new ArrayList<>();
+        mySelection.add(clientName);
+        mySelection.add(selectedMusic);
+
+        sendSomethingToSomeone(serverAddress,serverPort,mySelection);
+
+         /*
+        try {
+            checkWithServer();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+         */
+
+        //run();
 
     }
 
@@ -142,17 +201,12 @@ public class ClientAlpha implements Runnable {
             e.printStackTrace();
         }
 
-        System.out.println("Port Server : "+portServer);
+        System.out.println("Port Server : "+ serverPort);
         System.out.println("Port Clientclient "+portClientClient);
         System.out.println("Port ClientServer "+portClientServer);
 
         //startClientListeningSocket();
-
-
-
-
         //sendMessageToOtherClient();
-
         //getMessageFromOtherClient();
 
     }
@@ -171,50 +225,54 @@ public class ClientAlpha implements Runnable {
             //System.out.println("Get the address of the server : "+ serverAddress);
             ClientLogger.info("The address of the server : " + serverAddress);
 
-            clientExchangeSocket = new Socket(serverAddress, 17257);
-            //System.out.println("I got connection to " + serverAddress);
-            ClientLogger.info("We got connection to " + serverAddress);
 
-
-            //On reçoit un port client aléatoirement
-
-            portClientServer = clientExchangeSocket.getLocalPort();
-            //System.out.println("clientPort " + portClientServer);
-            ClientLogger.info("client port " + portClientServer);
-
-            /*
-            // now we wait for something ??
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-             */
-
-            OutputStream outputStream = clientExchangeSocket.getOutputStream();
-
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-
-            objectOutputStream.writeObject(collectMyInfo());
+            sendSomethingToSomeone(serverAddress, serverPort,collectMyInfo());
 
             //clientExchangeSocket.close();
 
-
-
-
-        }catch(UnknownHostException e){
-            e.printStackTrace();
-        }catch (IOException e){
-            System.out.println("server connection error, dying.....");
-        }catch (NullPointerException e){
+        } catch (NullPointerException e){
             System.out.println("Connection interrupted with the server");
         }
 
 
     }
 
-    public void findConnectionInfo(){
+
+    public void sendSomethingToSomeone(InetAddress clientIp, int clientPort, Object object) {
+
+        /**
+         * @author Thomas
+         * methode servant a envoyer un objet a un autre client
+         * il faut donner en parametre d'entree son ip, son port et notre message en objet
+         */
+
+
+        try {
+
+            clientExchangeSocket = new Socket(clientIp, clientPort);
+            //System.out.println("I got connection to " + serverAddress);
+            ClientLogger.info("We got connection to " + clientIp);
+
+
+            portClientServer = clientExchangeSocket.getLocalPort();
+
+            ClientLogger.info("client port " + portClientServer);
+
+            OutputStream outputStream = clientExchangeSocket.getOutputStream();
+
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+            objectOutputStream.writeObject(object);
+
+            System.out.println("Message envoyé");
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+        public void findConnectionInfo(){
 
         /**
          * @author Thomas
@@ -246,6 +304,15 @@ public class ClientAlpha implements Runnable {
 
     public void listening(){
 
+        /**
+         * @author Thomas
+         * Methode qui sert a recevoir depuis le server le menu des audios
+         * c'est egalement ici que l'on fait le choix de l'audio que l'on veut
+         */
+
+        boolean useOfMethode = true;
+        int cptloop = 0;
+
         try {
 
             clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
@@ -253,8 +320,8 @@ public class ClientAlpha implements Runnable {
             ClientLogger.info("Client listening to port :" + clientlisteningSocket.getLocalPort());
             System.out.println();
 
-            while (true) {
-
+            //while (true) {
+            while (useOfMethode) {
                 clientExchangeSocket = clientlisteningSocket.accept();
 
                 System.out.println("******************************************");
@@ -264,9 +331,25 @@ public class ClientAlpha implements Runnable {
                 ClientNumber++;
                 acceptClientThread.start();
 
-                receivedInfo();
+                incomingInfo();
+
+                //checkWithServer();
 
 
+                if(!incomingMessage.equals("Aucun audio actuellement disponbile")){
+                    selectedMusic= musicChoice();
+                    System.out.println("Votre sélection : "+selectedMusic);
+                }
+
+
+                cptloop++;
+
+                if (cptloop==2){
+                    useOfMethode=false;
+                }
+
+
+                clientExchangeSocket.close();
 
                 //receiveInfoFromClient();
                 //retreivedIpFromClient(clientsList,0);
@@ -281,7 +364,37 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void receivedInfo(){
+    public void checkWithServer() throws IOException {
+
+        /**
+         * @author Thomas
+         * Methode fonctionnelle mais inactive actuellement
+         * methode qui sert a repondre systematiquement au server par un message string
+         * De cette maniere le server sait apres quelques secondes si un client s'est deconnecte
+         */
+
+
+        BufferedReader buffin = new BufferedReader(new InputStreamReader(clientExchangeSocket.getInputStream()));
+        PrintWriter pout = new PrintWriter(clientExchangeSocket.getOutputStream());
+
+
+        do {
+            System.out.println("avant buffer "+incomingMessage);
+            incomingMessage = buffin.readLine();
+
+
+            System.out.println("Received message : " + incomingMessage);
+            pout.println(incomingMessage);
+            pout.flush();
+
+        }
+        while (!incomingMessage.equals("quit"));
+        //while (incomingMessage!=0);
+
+    }
+
+
+    public void incomingInfo(){
 
         /**
          * @author Thomas
@@ -311,7 +424,7 @@ public class ClientAlpha implements Runnable {
 
         // Recuperation des informations de la fusee venant du Server
 
-        String incomingMessage = null;
+        //String incomingMessage = null;
 
 
 
@@ -465,7 +578,10 @@ public class ClientAlpha implements Runnable {
 
 
 
+
+    //A DETRUIRE ? PAS UTILISE DU TOUT
     public void startClientListeningSocket(){
+
         try {
 
             clientlisteningSocket = new ServerSocket(portClientServer, 10, inetAddress);
@@ -484,7 +600,7 @@ public class ClientAlpha implements Runnable {
                 System.out.println("I am listening ");
                 Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient, ClientNumber));
                 acceptClientThread.start();
-                listening();
+                //listening();
 
 
             }
@@ -639,6 +755,28 @@ public class ClientAlpha implements Runnable {
         }
     }
 
+    @Override
+    public void run() {
+
+        /**
+         * @Thomas
+         * Tentative d'utilisation de Thread inactif
+         */
+
+
+
+        listening();
+
+        try {
+            checkWithServer();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /*
+
     //deprecated - a supprimer lorsqu'on aura integrer le syteme audio ailleurs
     @Override
     public void run() {
@@ -684,13 +822,16 @@ public class ClientAlpha implements Runnable {
             bos.close(); */
 
 
-            is.close();
-            exchangeSocket.close();
+           // is.close();
+           // exchangeSocket.close();
 
 
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-    }
+        //}catch(IOException e){
+          //  e.printStackTrace();
+       // }
+    //}
+
+
+
 
 }
