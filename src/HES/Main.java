@@ -22,6 +22,8 @@ public class Main {
         // Zone de test méthodes
 
     //Besoin d'inclure les thread pour faciliter le code
+    //Sans les thread le fonctionnement en séquence nécessite de constuire le code de manière
+    //particulière à chaque fois
 
 
     }
