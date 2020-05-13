@@ -21,7 +21,7 @@ public class Main {
     System.out.println("Hello");
         // Zone de test méthodes
 
-    //Menu audio ok
+    //Besoin d'inclure les thread pour faciliter le code
 
 
     }
