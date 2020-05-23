@@ -14,7 +14,7 @@ public class ClientTwo extends ClientAlpha {
         //startClient();
        // getMessageFromOtherClient();
 
-        clientMenu();
+        startClient();
 
     }
 }

@@ -24,8 +24,8 @@ public class ClientAlpha implements Runnable {
     private InetAddress localAddress = null;
     private String interfaceName = "wlan1"; // ?? à determiner
 
-    private InetAddress serverAddress;
-    private InetAddress inetAddress = null;
+    private String serverAddress = "192.168.0.15"; // à adapter!!!!!!!!!!!!!!!!!!
+    private InetAddress serverIP;
 
     //portServer est fixe car connu par le programme
     protected int serverPort = 17257;
@@ -34,9 +34,8 @@ public class ClientAlpha implements Runnable {
 
 
     private ServerSocket clientlisteningSocket;
-    private Socket clientExchangeSocket;
+    private Socket exchangeSocket;
 
-    protected Socket clientComServerSocket;
     private Socket socketForOtherClient;
 
     protected int portClientServer;
@@ -46,22 +45,21 @@ public class ClientAlpha implements Runnable {
     private String incomingMessage = "";
 
 
-
     //portClient est fixe également
     // mais vu que l'on travaille sur la meme machine il faut un port different pour chaque client
     //Le port est distribué par le Server automatiquement
 
 
     protected String myMusicRepertory = "C://temp//AudioStream//myMusic";
-    protected List<String> myMusic= new ArrayList<>();
+    protected List<String> myMusic = new ArrayList<>();
     protected List<String> myInfo = new ArrayList<>();
-    protected String clientName ="default";
+    protected String clientName = "default";
     private String questionOne = "Veuillez donner votre nom";
 
     private Calendar currentDate = Calendar.getInstance();
     private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
     private String dateNow = formatter.format(currentDate.getTime());
-    
+
     private BufferedReader buffInForClient;
     private BufferedReader buffToWriteMessage;
     private PrintWriter printForOtherClient;
@@ -69,28 +67,9 @@ public class ClientAlpha implements Runnable {
 
     private int selectedMusic = 0;
 
+    public ClientAlpha() { }
 
-    public ClientAlpha() {
-
-
-
-    }
-
-    public void clientMenu(){
-
-        /**
-         * @Thomas
-         * methode servant uniquement a lancer le programme avec les premieres etapes et methodes
-         */
-
-        clientName=myChoice(questionOne);
-        startClient();
-
-        //Thread t = new Thread(new ClientAlpha());
-    }
-
-
-    private String myChoice(String question){
+    private String myChoice(String question) {
 
         /**
          * @Thomas
@@ -99,22 +78,21 @@ public class ClientAlpha implements Runnable {
 
         Scanner scan = new Scanner(System.in);
 
-            String choice = "default";
+        String choice = "default";
 
-            System.out.println(question);
-            choice = scan.nextLine();
+        System.out.println(question);
+        choice = scan.nextLine();
 
 
         return choice;
     }
 
-
-    public int musicChoice(){
+    public int musicChoice() {
 
 
         Scanner scan = new Scanner(System.in);
 
-        int myChoice =0;
+        int myChoice = 0;
 
         System.out.println("Veuillez saisir le numero de l'audio que vous désirez : ");
 
@@ -135,42 +113,29 @@ public class ClientAlpha implements Runnable {
         return myChoice;
     }
 
-    protected void startClient(){
+    protected void startClient() {
 
         /**
          * @author Thomas et Marina
          * methode qui va demarrer l'activite du client
-         * pour l'instant pas essentiel startClientSockets pourrait suffire.
-         * A ete creer afin d'integrer au besoin une interaction avec l'utilisateur.
-         * (Genre demande du nom utilisateur ou chemin d'acces repertoire audio)
          */
-
-        findConnectionInfo();
+        clientName = myChoice(questionOne);
         startClientLogger();
-        listening();
+        sendSomethingToSomeone(exchangeSocket, collectMyInfo());
+      //  listeningToClients();
 
+        /*
         System.out.println("Sending selection to Server");
 
-        List<Object>mySelection = new ArrayList<>();
+        List<Object> mySelection = new ArrayList<>();
         mySelection.add(clientName);
         mySelection.add(selectedMusic);
 
-        sendSomethingToSomeone(serverAddress,serverPort,mySelection);
-
-         /*
-        try {
-            checkWithServer();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-         */
-
-        //run();
+        sendSomethingToSomeone(serverAddress, serverPort, mySelection); */
 
     }
 
-    public void startClientLogger(){
+    public void startClientLogger() {
 
         FileHandler fh = null;
 
@@ -188,10 +153,14 @@ public class ClientAlpha implements Runnable {
         ClientLogger.info("********************** program starts ******************");
 
         try {
+            startClientSockets(); //C'est l'envoie de la fusée à Server
 
-            //C'est l'envoie de la fusée
-            startClientSockets();
+            /*incomingInfo(); // Recevoir la reponse
 
+            if (!incomingMessage.equals("Aucun audio actuellement disponbile")) {
+                selectedMusic = musicChoice();
+                System.out.println("Votre sélection : " + selectedMusic);
+            }*/
 
         } catch (IOException e) {
             ClientLogger.severe("IOException " + e.toString());
@@ -201,13 +170,8 @@ public class ClientAlpha implements Runnable {
             e.printStackTrace();
         }
 
-        System.out.println("Port Server : "+ serverPort);
-        System.out.println("Port Clientclient "+portClientClient);
-        System.out.println("Port ClientServer "+portClientServer);
-
-        //startClientListeningSocket();
-        //sendMessageToOtherClient();
-        //getMessageFromOtherClient();
+        System.out.println("Port Server : " + serverPort);
+        System.out.println("Port Clientclient " + portClientClient);
 
     }
 
@@ -220,25 +184,25 @@ public class ClientAlpha implements Runnable {
 
         System.out.println("Client name:  " + clientName);
 
-        try{
-            serverAddress = findIpAddress();
-            //System.out.println("Get the address of the server : "+ serverAddress);
-            ClientLogger.info("The address of the server : " + serverAddress);
+        try {
+
+            serverIP = InetAddress.getByName(serverAddress);
+            ClientLogger.info("Get the address of the server : "+ serverIP);
+
+            exchangeSocket = new Socket(serverIP, serverPort);
+
+            portClientServer = exchangeSocket.getPort();
+            ClientLogger.info("Client port for Server" + portClientServer);
 
 
-            sendSomethingToSomeone(serverAddress, serverPort,collectMyInfo());
-
-            //clientExchangeSocket.close();
-
-        } catch (NullPointerException e){
+        } catch (NullPointerException e) {
             System.out.println("Connection interrupted with the server");
         }
 
 
     }
 
-
-    public void sendSomethingToSomeone(InetAddress clientIp, int clientPort, Object object) {
+    public void sendSomethingToSomeone(Socket exchangeSocket, Object object) {
 
         /**
          * @author Thomas
@@ -249,22 +213,15 @@ public class ClientAlpha implements Runnable {
 
         try {
 
-            clientExchangeSocket = new Socket(clientIp, clientPort);
-            //System.out.println("I got connection to " + serverAddress);
-            ClientLogger.info("We got connection to " + clientIp);
+            ClientLogger.info("I am connected to " + exchangeSocket.getPort());
 
-
-            portClientServer = clientExchangeSocket.getLocalPort();
-
-            ClientLogger.info("client port " + portClientServer);
-
-            OutputStream outputStream = clientExchangeSocket.getOutputStream();
+            OutputStream outputStream = exchangeSocket.getOutputStream();
 
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
             objectOutputStream.writeObject(object);
 
-            System.out.println("Message envoyé");
+            ClientLogger.info("Message envoyé" + object);
 
 
         } catch (IOException e) {
@@ -272,37 +229,7 @@ public class ClientAlpha implements Runnable {
         }
     }
 
-        public void findConnectionInfo(){
-
-        /**
-         * @author Thomas
-         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
-         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
-         */
-
-        NetworkInterface ni = null;
-        try {
-            ni = NetworkInterface.getByName(interfaceName);
-        } catch (SocketException e) {
-            System.out.println("Connection Timed out");
-            ClientLogger.severe("Connection Timed out");
-        }
-
-        Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-        while (inetAddresses.hasMoreElements()) {
-            InetAddress ia = inetAddresses.nextElement();
-
-            if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
-                if (!ia.isLoopbackAddress()) {
-                    System.out.println(ni.getName() + "->IP: " + ia.getHostAddress());
-                    localAddress = ia;
-                }
-            }
-        }
-
-    }
-
-    public void listening(){
+    public void listeningToClients() {
 
         /**
          * @author Thomas
@@ -322,38 +249,21 @@ public class ClientAlpha implements Runnable {
 
             //while (true) {
             while (useOfMethode) {
-                clientExchangeSocket = clientlisteningSocket.accept();
+                exchangeSocket = clientlisteningSocket.accept();
 
                 System.out.println("******************************************");
 
                 System.out.println("I am listening ");
-                Thread acceptClientThread = new Thread(new AcceptClient(clientExchangeSocket, ClientNumber));
+                Thread acceptClientThread = new Thread(new AcceptClient(exchangeSocket));
+                ClientLogger.info("Got connection to other Client " + exchangeSocket.getLocalPort());
                 ClientNumber++;
                 acceptClientThread.start();
 
-                incomingInfo();
-
-                //checkWithServer();
-
-
-                if(!incomingMessage.equals("Aucun audio actuellement disponbile")){
-                    selectedMusic= musicChoice();
-                    System.out.println("Votre sélection : "+selectedMusic);
-                }
-
-
                 cptloop++;
 
-                if (cptloop==2){
-                    useOfMethode=false;
+                if (cptloop == 2) {
+                    useOfMethode = false;
                 }
-
-
-                clientExchangeSocket.close();
-
-                //receiveInfoFromClient();
-                //retreivedIpFromClient(clientsList,0);
-                //System.out.println(musicString(giveMusicList(0)));
 
             }
 
@@ -374,12 +284,12 @@ public class ClientAlpha implements Runnable {
          */
 
 
-        BufferedReader buffin = new BufferedReader(new InputStreamReader(clientExchangeSocket.getInputStream()));
-        PrintWriter pout = new PrintWriter(clientExchangeSocket.getOutputStream());
+        BufferedReader buffin = new BufferedReader(new InputStreamReader(exchangeSocket.getInputStream()));
+        PrintWriter pout = new PrintWriter(exchangeSocket.getOutputStream());
 
 
         do {
-            System.out.println("avant buffer "+incomingMessage);
+            System.out.println("avant buffer " + incomingMessage);
             incomingMessage = buffin.readLine();
 
 
@@ -393,8 +303,7 @@ public class ClientAlpha implements Runnable {
 
     }
 
-
-    public void incomingInfo(){
+    public void incomingInfo() {
 
         /**
          * @author Thomas
@@ -407,7 +316,7 @@ public class ClientAlpha implements Runnable {
 
         InputStream inputStream = null;
         try {
-            inputStream = clientExchangeSocket.getInputStream();
+            inputStream = exchangeSocket.getInputStream();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -420,13 +329,6 @@ public class ClientAlpha implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-        // Recuperation des informations de la fusee venant du Server
-
-        //String incomingMessage = null;
-
-
 
         try {
             incomingMessage = (String) objectInputStream.readObject();
@@ -443,17 +345,13 @@ public class ClientAlpha implements Runnable {
 
     }
 
-
-
-
-    //protected String findIpAddress(){
-    protected InetAddress findIpAddress(){
+    protected InetAddress findIpAddress() {
         /**
          * @author Thomas
          * Methode qui va servir à determiner automatiquement l'adresse ip du client et son interface
          */
 
-        InetAddress localAddress=null;
+        InetAddress localAddress = null;
         NetworkInterface ni;
         try {
             ni = NetworkInterface.getByName(findInterface());
@@ -464,7 +362,6 @@ public class ClientAlpha implements Runnable {
                 if (!(ia instanceof Inet6Address) && !(ia.isLoopbackAddress())) {
                     localAddress = ia;
 
-                    inetAddress = ia;
                 }
             }
 
@@ -475,7 +372,7 @@ public class ClientAlpha implements Runnable {
         return localAddress;
     }
 
-    protected String findInterface () throws SocketException {
+    protected String findInterface() throws SocketException {
 
         /**
          * @author Thomas
@@ -495,25 +392,24 @@ public class ClientAlpha implements Runnable {
             NetworkInterface nix = allNi.nextElement();
 
 
-            if (nix.isUp()==true) {
+            if (nix.isUp() == true) {
 
-                if(nix.getName().contains("w")){
-                    myInterface=nix.getName();
+                if (nix.getName().contains("w")) {
+                    myInterface = nix.getName();
                 }
             }
         }
         return myInterface;
     }
 
-
-    protected List<String> searchMyMusic (){
+    protected List<String> searchMyMusic() {
 
         /**
          * @author Thomas
          * Methode qui va repertorier tous les fichiers wav se trouvant dans le repertoire du client
          */
 
-        List<String> myMusic=new ArrayList<>();
+        List<String> myMusic = new ArrayList<>();
 
         try (Stream<Path> walk = Files.walk(Paths.get(myMusicRepertory))) {
 
@@ -528,8 +424,7 @@ public class ClientAlpha implements Runnable {
         return myMusic;
     }
 
-
-    protected List<Integer> searchSizesMySongs(){
+    protected List<Integer> searchSizesMySongs() {
 
         /**
          * @Thomas
@@ -537,15 +432,15 @@ public class ClientAlpha implements Runnable {
          * de chaque chanson du client
          */
 
-        List<Integer>sizesMySongs = new ArrayList<>();
+        List<Integer> sizesMySongs = new ArrayList<>();
         int size = 0;
 
-        myMusic=searchMyMusic();
+        myMusic = searchMyMusic();
 
-        for(int i =0; i<myMusic.size();i++){
+        for (int i = 0; i < myMusic.size(); i++) {
 
             File myFile = new File(myMusic.get(i));
-            byte[] mybytearray = new byte[(int)myFile.length()];
+            byte[] mybytearray = new byte[(int) myFile.length()];
 
             size = mybytearray.length;
 
@@ -556,8 +451,6 @@ public class ClientAlpha implements Runnable {
 
     }
 
-
-
     protected List<Object> collectMyInfo() {
 
         /**
@@ -567,24 +460,17 @@ public class ClientAlpha implements Runnable {
          */
 
         List<Object> myCollectedInfo = new ArrayList<>();
-        myCollectedInfo.add(clientName);
-        myCollectedInfo.add(findIpAddress());
-        myCollectedInfo.add(portClientClient);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 
         return myCollectedInfo;
     }
 
-
-
-
-    //A DETRUIRE ? PAS UTILISE DU TOUT
-    public void startClientListeningSocket(){
+    public void startClientListeningSocket() {
 
         try {
 
-            clientlisteningSocket = new ServerSocket(portClientServer, 10, inetAddress);
+            clientlisteningSocket = new ServerSocket(portClientClient, 10, findIpAddress());
 
             //System.out.println("Default Timeout :" + listeningSocket.getSoTimeout());
             //System.out.println("Used IpAddress :" + listeningSocket.getInetAddress());
@@ -598,7 +484,7 @@ public class ClientAlpha implements Runnable {
                 System.out.println("******************************************");
 
                 System.out.println("I am listening ");
-                Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient, ClientNumber));
+                Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient));
                 acceptClientThread.start();
                 //listening();
 
@@ -613,62 +499,15 @@ public class ClientAlpha implements Runnable {
 
     }
 
+    //A DETRUIRE ? PAS UTILISE DU TOUT
 
+    public void getMessageFromOtherClient() {
 
-
-    public void listIterator(List<String> c) {
-
-        /**
-         * @author Thomas
-         * Methode permettant d'afficher une liste de String avec numerotation devant chaque element
-         */
-
-        int cpt = 1;
-
-        Iterator<String> i = c.iterator();
-
-        while (i.hasNext()) {
-
-            String l = i.next();
-            System.out.println(cpt + ". " + l);
-            cpt++;
-        }
-
-        System.out.println();
-
-    }
-
-    public void listIteratorInt(List<Integer> c) {
-
-        /**
-         * @author Thomas
-         * Methode permettant d'afficher une liste de int avec numerotation devant chaque element
-         */
-
-        int cpt = 1;
-
-        Iterator<Integer> i = c.iterator();
-
-        while (i.hasNext()) {
-
-            int l = i.next();
-            System.out.println(cpt + ". " + l);
-            cpt++;
-        }
-
-        System.out.println();
-
-    }
-
-
-    
-    public void getMessageFromOtherClient(){
-        
         String messageFromOtherClient = "";
 
         //get an input stream from the socket to read data from the server
         try {
-            buffInForClient = new BufferedReader (new InputStreamReader (socketForOtherClient.getInputStream()));
+            buffInForClient = new BufferedReader(new InputStreamReader(socketForOtherClient.getInputStream()));
             printForOtherClient = new PrintWriter(socketForOtherClient.getOutputStream());
         } catch (IOException e) {
             ClientLogger.severe("IOException " + e.toString());
@@ -677,8 +516,7 @@ public class ClientAlpha implements Runnable {
 
         //listen to the input from the socket
         //exit when the order quit is given
-        while(true)
-        {
+        while (true) {
             //Read a line in the buffer, wait until something arrive remove the last cr
             System.out.println("wait message from server...");
             ClientLogger.info("wait message from server...");
@@ -693,12 +531,11 @@ public class ClientAlpha implements Runnable {
             printForOtherClient.flush();
 
             //display message received by the server
-            System.out.println("\nMessage received from server:\n"+messageFromOtherClient);
-            ClientLogger.info("\nMessage received from server:\n"+messageFromOtherClient);
+            System.out.println("\nMessage received from server:\n" + messageFromOtherClient);
+            ClientLogger.info("\nMessage received from server:\n" + messageFromOtherClient);
 
             //if quit then exit the loop
-            if (messageFromOtherClient.equals("quit"))
-            {
+            if (messageFromOtherClient.equals("quit")) {
                 System.out.println("\nquit sent from server...");
                 ClientLogger.info("\nquit sent from server...");
                 break;
@@ -707,12 +544,12 @@ public class ClientAlpha implements Runnable {
 
     }
 
-    public void sendMessageToOtherClient(){
+    public void sendMessageToOtherClient() {
 
         //open the output data stream
         try {
             writeForOtherClient = new PrintWriter(socketForOtherClient.getOutputStream());
-            buffToWriteMessage = new BufferedReader (new InputStreamReader (socketForOtherClient.getInputStream()));
+            buffToWriteMessage = new BufferedReader(new InputStreamReader(socketForOtherClient.getInputStream()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -723,8 +560,7 @@ public class ClientAlpha implements Runnable {
         String message_distant = "";
 
         //loop on the client connection in/out
-        while(true)
-        {
+        while (true) {
             //Send a message to the client
             System.out.println("Send message to client: ");
             ClientLogger.info("Send message to client: ");
@@ -742,12 +578,11 @@ public class ClientAlpha implements Runnable {
             }
 
             //Display the message sent by the client
-            System.out.println("\nReceive message from client:\n"+message_distant);
-            ClientLogger.info("Receive message from client:"+message_distant);
+            System.out.println("\nReceive message from client:\n" + message_distant);
+            ClientLogger.info("Receive message from client:" + message_distant);
 
             //if the order is quit then exit from the loop
-            if (message_distant.equals("quit"))
-            {
+            if (message_distant.equals("quit")) {
                 System.out.println("\nReceived the quit message....");
                 ClientLogger.info("Received the quit message....");
                 break;
@@ -759,79 +594,19 @@ public class ClientAlpha implements Runnable {
     public void run() {
 
         /**
-         * @Thomas
-         * Tentative d'utilisation de Thread inactif
+         * @Thomas/ Marina
+         * Tentative d'utilisation de Thread
          */
 
-
-
-        listening();
-
+        startClientListeningSocket();
+       // listening();
+    /*
         try {
             checkWithServer();
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
 
     }
-
-    /*
-
-    //deprecated - a supprimer lorsqu'on aura integrer le syteme audio ailleurs
-    @Override
-    public void run() {
-
-        System.out.println("Client online");
-
-
-        try{
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            Socket exchangeSocket = new Socket(findIpAddress(), portServer);
-            System.out.println("I am connected");
-
-            InputStream is = new BufferedInputStream(exchangeSocket.getInputStream());
-
-            try {
-                AudioPlayer player = new AudioPlayer(is);
-                player.play();
-                try {
-                    Thread.sleep(player.clip.getMicrosecondLength());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            } catch (UnsupportedAudioFileException e) {
-                e.printStackTrace();
-            } catch (LineUnavailableException e) {
-                e.printStackTrace();
-            }
-
-
-            /*FileOutputStream fos = new FileOutputStream(path);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-
-            int bytesRead = is.read(mybytearray, 0, mybytearray.length);
-            bos.write(mybytearray, 0, mybytearray.length);
-
-            bos.close(); */
-
-
-           // is.close();
-           // exchangeSocket.close();
-
-
-        //}catch(IOException e){
-          //  e.printStackTrace();
-       // }
-    //}
-
-
-
 
 }

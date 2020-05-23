@@ -15,7 +15,7 @@ public class ClientOne extends ClientAlpha {
 
         //startClient();
        // sendMessageToOtherClient();
-        clientMenu();
+        startClient();
 
     }
 

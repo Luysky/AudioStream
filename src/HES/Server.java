@@ -14,10 +14,10 @@ public class Server implements Runnable {
     private final static Logger ServerLogger = Logger.getLogger("ServerLog");
 
     private List<Object> clientsList = new ArrayList<>();
-    private int idClient = 1;
+    private int idClient = 0;
 
     private ServerSocket serverListeningSocket = null;
-    private Socket serverExchangeSocket = null;
+    protected Socket serverExchangeSocket = null;
 
     private InetAddress localAddress = null;
     private String interfaceName = "wlan1"; // ?? à determiner
@@ -35,21 +35,41 @@ public class Server implements Runnable {
 
 
 
-    public Server() {
+    public Server() throws InterruptedException {
 
         startServerLogger();
-        //sendInfoFromClient();
+        serverListeningSocket = startServerSocket();
 
-        //Si tu actives uniquement run() dans server et client la musique se lance
-        //NE PAS ACTIVER EN MEME TEMPS QUE LE RESTE DREPRECATED
-        //run();
+        boolean useOfMethode = true;
+        int cptloop = 0;
 
-        //Thread t1 = new Thread(new Server());
+        while(useOfMethode){
 
+
+            try {
+                cptloop++;
+                serverExchangeSocket = serverListeningSocket.accept();
+                Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket));
+                acceptClientThread.start();
+
+                ServerLogger.info("New Client is connected " + serverExchangeSocket);
+                registerClient(serverExchangeSocket);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+               if (cptloop == 2) {
+                   useOfMethode = false;
+               }
+        }
+
+        try {
+            sendMusicMenu();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void startServerLogger(){
-
 
         FileHandler fh = null;
         try {
@@ -65,17 +85,59 @@ public class Server implements Runnable {
         ServerLogger.setLevel(Level.INFO);
         ServerLogger.info("******************** Program starts ********************");
 
-        findConnectionInfo();
-        startServerSocket();
+
+    }
+
+    public ServerSocket startServerSocket() {
+
+        /**
+         * @Thomas_et_Marina
+         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
+         * le Serveur reste toujours en écoute et accept tous les clients qui se connectent.
+         */
 
 
         try {
-            receiveMessageFromClient();
-        } catch (IOException e) {
+
+            findConnectionInfo();
+
+            try {
+
+                serverListeningSocket = new ServerSocket(17257, 10, localAddress);
+                ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
+                ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
+                System.out.println();
+
+
+                System.out.println("******************************************");
+
+                System.out.println("I am listening ");
+
+              //  AcceptClient ac = new AcceptClient(serverListeningSocket);
+
+              //  Thread acceptClientThread = new Thread(ac);
+
+              //  acceptClientThread.start();
+
+
+
+                   /* InetAddress clientIP = serverExchangeSocket.getInetAddress();
+                    int port = serverExchangeSocket.getLocalPort();
+                    ServerLogger.info("Client IP " + clientIP + " et Client port " + port);
+                    receiveInfoFromClient(clientIP, port);
+
+                    sendMusicMenu(clientIP, port); */
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                ServerLogger.severe("IO exception " + e.toString());
+            }
+        } catch (Exception e) {
             e.printStackTrace();
-        };
+            ServerLogger.severe("Exception " + e.toString());
+        }
 
-
+        return serverListeningSocket;
     }
 
     public void findConnectionInfo(){
@@ -108,79 +170,23 @@ public class Server implements Runnable {
 
     }
 
-    public void startServerSocket() {
+    public void registerClient(Socket serverExchangeSocket) {
 
         /**
-         * @Thomas_et_Marina
-         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
-         * le Serveur reste toujours en écoute et accept tous les clients qui se connectent.
-         */
-
-
-        try {
-
-            findConnectionInfo();
-
-            try {
-
-                serverListeningSocket = new ServerSocket(17257, 10, localAddress);
-                ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
-                ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
-                System.out.println();
-
-                boolean useOfMethode = true;
-                int cptloop = 0;
-
-                //while (true) {
-                while (useOfMethode){
-                    serverExchangeSocket = serverListeningSocket.accept();
-
-                    System.out.println("******************************************");
-
-                    System.out.println("I am listening ");
-                    Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket, ClientNumber));
-                    ClientNumber++;
-                    acceptClientThread.start();
-                    receiveInfoFromClient();
-
-
-                    sendMusicMenu();
-
-                    cptloop++;
-
-                    if (cptloop==2){
-                        useOfMethode=false;
-                    }
-
-
-                    serverExchangeSocket.close();
-
-                    //run();
-                    //checkIfClientActif();
-                }
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                ServerLogger.severe("IO exception " + e.toString());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            ServerLogger.severe("Exception " + e.toString());
-        }
-    }
-
-    public void receiveInfoFromClient() {
-
-        /**
-         * @Thomas
+         * @Thomas/Marina
          * Methode integre la recuperation de la fusee d'information du client (Regroupement d'infor de base du client)
          * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
          * de tous les clients
          */
 
+        idClient++;
         //System.out.println("A client is connected");
         ServerLogger.info("A client is connected");
 
+        List<Object> clientPackage = new ArrayList<>();
+        ServerLogger.info("Client IP is " + serverExchangeSocket.getInetAddress() + " and port " + serverExchangeSocket.getPort());
+        clientPackage.add(serverExchangeSocket.getInetAddress());
+        clientPackage.add(serverExchangeSocket.getPort());
 
         //InputStream inputStream = null;
         try {
@@ -204,6 +210,7 @@ public class Server implements Runnable {
         List<Object> incomingRocket = null;
         try {
             incomingRocket = (List<Object>) objectInputStream.readObject();
+            ServerLogger.info("I've got from " + idClient + " this info " + incomingRocket);
         } catch (IOException e) {
             ServerLogger.severe("IOException " + e.toString());
         } catch (ClassNotFoundException e) {
@@ -211,12 +218,7 @@ public class Server implements Runnable {
         }
 
 
-        List<Object> recupInfos = incomingRocket;
-        idClient++;
-
-        List<Object> clientPackage = new ArrayList<>();
-        clientPackage.add(idClient);
-        clientPackage.add(recupInfos);
+        clientPackage.add(incomingRocket);
 
         clientsList.add(clientPackage);
 
@@ -225,12 +227,11 @@ public class Server implements Runnable {
         System.out.println();
         System.out.println("Receiving from client :");
 
-        System.out.println("Client Name : " + recupInfos.get(0));
-        System.out.println("Client Ip : " + recupInfos.get(1));
-        ServerLogger.info("Client IP :" + recupInfos.get(1));
-        System.out.println("Client Port : " + recupInfos.get(2)); // il n'ya plus des port, j'ai changé le numero du tableau
-        System.out.println("Client music :" + recupInfos.get(3));
-        System.out.println();
+        System.out.println("Client Ip : " + clientPackage.get(0));
+        ServerLogger.info("Client IP :" + clientPackage.get(0));
+        System.out.println("Client Port : " + clientPackage.get(1)); // il n'ya plus des port, j'ai changé le numero du tableau
+        System.out.println("Client music :" + clientPackage.get(2));
+        System.out.println(clientsList);
 
 
     }
@@ -289,7 +290,7 @@ public class Server implements Runnable {
     }
 
 
-    public void checkIfClientActif() throws IOException {
+    public void checkIfClientActif(InetAddress clientIP, int port) throws IOException {
 
         /**
          * @author Thomas
@@ -301,11 +302,7 @@ public class Server implements Runnable {
 
         for(int i = 0; i<clientsList.size(); i++) {
 
-            InetAddress clientIp = retreivedIpFromClient(clientsList, i);
-            int port = retreivedPortFromClient(clientsList, i);
-
-
-            sendCheckToClient(clientIp,port);
+            sendCheckToClient(clientIP,port);
 
         }
 
@@ -397,8 +394,8 @@ public class Server implements Runnable {
         for(int i = 0; i<clientsList.size(); i++) {
 
             InetAddress clientIp = retreivedIpFromClient(clientsList, i);
-            int port = retreivedPortFromClient(clientsList, i);
 
+            int port = retreivedPortFromClient(clientsList, i);
             String message = musicString(giveMusicList(i));
 
             if(message!="") {
@@ -480,21 +477,6 @@ public class Server implements Runnable {
 
     }
 
-
-    public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
-
-        /**
-         * @author Thomas
-         * Methode qui va recuperer l'adresse Ip envoyee par un client
-         */
-
-        List<Object>tempList = (List<Object>) clientlist.get(client);
-        List<Object>packageList = (List<Object>) tempList.get(1);
-        InetAddress temp = (InetAddress) packageList.get(1);
-
-        return temp;
-    }
-
     public int retreivedPortFromClient(List<Object>clientsList, int client){
 
         /**
@@ -509,9 +491,6 @@ public class Server implements Runnable {
         return temp;
 
     }
-
-
-
 
     public void listIterator(List<String> c) {
 
@@ -537,6 +516,29 @@ public class Server implements Runnable {
         System.out.println();
 
     }
+    public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
+
+        /**
+
+         * @author Thomas
+
+         * Methode qui va recuperer l'adresse Ip envoyee par un client
+
+         */
+
+
+
+        List<Object>tempList = (List<Object>) clientlist.get(client);
+
+        List<Object>packageList = (List<Object>) tempList.get(0);
+
+        InetAddress temp = (InetAddress) packageList.get(0);
+
+
+
+        return temp;
+
+    }
 
 
     @Override
@@ -547,17 +549,6 @@ public class Server implements Runnable {
          * methode inactive tentative d'utilisation des threads
          */
 
-        try {
-
-            sendMusicMenu();
-            checkIfClientActif();
-
-
-            System.out.println("J'ai passé dans le thread");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
     }
 }
