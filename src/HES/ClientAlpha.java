@@ -189,7 +189,8 @@ public class ClientAlpha implements Runnable {
             serverIP = InetAddress.getByName(serverAddress);
             ClientLogger.info("Get the address of the server : "+ serverIP);
 
-            exchangeSocket = new Socket(serverIP, serverPort);
+            //exchangeSocket = new Socket(serverIP, serverPort);
+            exchangeSocket = new Socket(findIpAddress(), serverPort);
 
             portClientServer = exchangeSocket.getPort();
             ClientLogger.info("Client port for Server" + portClientServer);
@@ -460,6 +461,8 @@ public class ClientAlpha implements Runnable {
          */
 
         List<Object> myCollectedInfo = new ArrayList<>();
+        myCollectedInfo.add(findIpAddress());
+        myCollectedInfo.add(portClientClient);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
 

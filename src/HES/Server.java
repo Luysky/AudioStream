@@ -47,13 +47,15 @@ public class Server implements Runnable {
 
 
             try {
-                cptloop++;
                 serverExchangeSocket = serverListeningSocket.accept();
+
                 Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket));
                 acceptClientThread.start();
 
                 ServerLogger.info("New Client is connected " + serverExchangeSocket);
                 registerClient(serverExchangeSocket);
+                cptloop++;
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -62,11 +64,21 @@ public class Server implements Runnable {
                }
         }
 
+
+        System.out.println("Le programme se trouve ici, prêt pour sendMusic");
+
+        //sendMusicMenu desactivé car gestion des thread obligatoire avant
+/*
         try {
             sendMusicMenu();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
+ */
+
     }
 
     public void startServerLogger(){
@@ -180,13 +192,11 @@ public class Server implements Runnable {
          */
 
         idClient++;
-        //System.out.println("A client is connected");
         ServerLogger.info("A client is connected");
 
         List<Object> clientPackage = new ArrayList<>();
-        ServerLogger.info("Client IP is " + serverExchangeSocket.getInetAddress() + " and port " + serverExchangeSocket.getPort());
-        clientPackage.add(serverExchangeSocket.getInetAddress());
-        clientPackage.add(serverExchangeSocket.getPort());
+        ServerLogger.info("Client IP is " + serverExchangeSocket.getInetAddress() + " and communication port with server " + serverExchangeSocket.getPort());
+
 
         //InputStream inputStream = null;
         try {
@@ -217,9 +227,18 @@ public class Server implements Runnable {
             ServerLogger.severe("ClassNotFoundException " + e.toString());
         }
 
-
+        clientPackage.add(serverExchangeSocket);
         clientPackage.add(incomingRocket);
 
+
+        //clientPackage est une liste d'objects !
+        //avec à l'intérieur  :
+        // 0 = IP
+        // 1 = port clientClient
+        // 2 = une liste de musique ListMusic
+        // 3 = une liste de taille SizeMusic
+
+        //clientsList.add(clientSocketOnServer.getPort());
         clientsList.add(clientPackage);
 
 
@@ -227,11 +246,23 @@ public class Server implements Runnable {
         System.out.println();
         System.out.println("Receiving from client :");
 
-        System.out.println("Client Ip : " + clientPackage.get(0));
-        ServerLogger.info("Client IP :" + clientPackage.get(0));
-        System.out.println("Client Port : " + clientPackage.get(1)); // il n'ya plus des port, j'ai changé le numero du tableau
-        System.out.println("Client music :" + clientPackage.get(2));
-        System.out.println(clientsList);
+        System.out.println("Taille de clientPackage : "+clientPackage.size());
+
+
+
+        List<Object>clientRocket = (List<Object>) clientPackage.get(1);
+
+        InetAddress ia = (InetAddress) clientRocket.get(0);
+        System.out.println("InetAddress du client: "+ia);
+        ServerLogger.info("Client IP :" + clientRocket.get(0));
+
+        int portClientClient = (int) clientRocket.get(1);
+        System.out.println("Port clientClient: "+portClientClient);
+
+        System.out.println("Music list: "+clientRocket.get(2));
+        System.out.println("Music Size: "+clientRocket.get(3));
+
+
 
 
     }
@@ -368,6 +399,8 @@ public class Server implements Runnable {
 
         Socket clientSocket = null;
         try {
+            System.out.println("ClientIp : "+clientIp);
+            System.out.println("ClientPort : "+clientPort);
             clientSocket = new Socket(clientIp, clientPort);
         } catch (IOException e) {
             e.printStackTrace();
@@ -394,8 +427,8 @@ public class Server implements Runnable {
         for(int i = 0; i<clientsList.size(); i++) {
 
             InetAddress clientIp = retreivedIpFromClient(clientsList, i);
-
             int port = retreivedPortFromClient(clientsList, i);
+
             String message = musicString(giveMusicList(i));
 
             if(message!="") {
@@ -436,7 +469,7 @@ public class Server implements Runnable {
                 packageList = (List<Object>) tempList.get(1);
 
                 //On selectionne la liste de music et on l'ajoute au menu des music
-                musicList = (List<String>) packageList.get(3);
+                musicList = (List<String>) packageList.get(2);
             }
         }
 
@@ -485,8 +518,8 @@ public class Server implements Runnable {
          */
 
         List<Object>tempList = (List<Object>) clientsList.get(client);
-        List<Object>packageList = (List<Object>) tempList.get(1);
-        int temp = (int) packageList.get(2);
+        Socket socket  = (Socket) tempList.get(0);
+        int temp = socket.getPort();
 
         return temp;
 
@@ -530,7 +563,7 @@ public class Server implements Runnable {
 
         List<Object>tempList = (List<Object>) clientlist.get(client);
 
-        List<Object>packageList = (List<Object>) tempList.get(0);
+        List<Object>packageList = (List<Object>) tempList.get(1);
 
         InetAddress temp = (InetAddress) packageList.get(0);
 
