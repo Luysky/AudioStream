@@ -11,10 +11,8 @@ public class ClientTwo extends ClientAlpha {
 
         portClientClient = 25250;
 
-        //startClient();
-       // getMessageFromOtherClient();
 
-        startClient();
+      //  ClientTwo clientTwo = new ClientTwo();
 
     }
 }

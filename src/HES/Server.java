@@ -9,7 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class Server implements Runnable {
+public class Server {
 
     private final static Logger ServerLogger = Logger.getLogger("ServerLog");
 
@@ -34,8 +34,7 @@ public class Server implements Runnable {
     private String clientAnswer = null;
 
 
-
-    public Server() throws InterruptedException {
+    public Server() {
 
         startServerLogger();
         serverListeningSocket = startServerSocket();
@@ -43,8 +42,7 @@ public class Server implements Runnable {
         boolean useOfMethode = true;
         int cptloop = 0;
 
-        while(useOfMethode){
-
+        while (useOfMethode) {
 
             try {
                 serverExchangeSocket = serverListeningSocket.accept();
@@ -57,31 +55,27 @@ public class Server implements Runnable {
                 cptloop++;
 
             } catch (IOException e) {
+                ServerLogger.severe("IOException " + e.toString());
                 e.printStackTrace();
             }
-               if (cptloop == 2) {
-                   useOfMethode = false;
-               }
+            if (cptloop == 2) {
+                useOfMethode = false;
+            }
         }
 
 
         System.out.println("Le programme se trouve ici, prêt pour sendMusic");
-
-        //sendMusicMenu desactivé car gestion des thread obligatoire avant
-/*
         try {
-            sendMusicMenu();
-
+            //!!!! ça marche, mais il faut separer les Clients
+            sendMusicMenu(serverExchangeSocket);
         } catch (IOException e) {
+            ServerLogger.severe("IOException " + e.toString());
             e.printStackTrace();
         }
 
-
- */
-
     }
 
-    public void startServerLogger(){
+    public void startServerLogger() {
 
         FileHandler fh = null;
         try {
@@ -96,7 +90,6 @@ public class Server implements Runnable {
         ServerLogger.addHandler(fh);
         ServerLogger.setLevel(Level.INFO);
         ServerLogger.info("******************** Program starts ********************");
-
 
     }
 
@@ -120,25 +113,8 @@ public class Server implements Runnable {
                 ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
                 System.out.println();
 
-
                 System.out.println("******************************************");
-
                 System.out.println("I am listening ");
-
-              //  AcceptClient ac = new AcceptClient(serverListeningSocket);
-
-              //  Thread acceptClientThread = new Thread(ac);
-
-              //  acceptClientThread.start();
-
-
-
-                   /* InetAddress clientIP = serverExchangeSocket.getInetAddress();
-                    int port = serverExchangeSocket.getLocalPort();
-                    ServerLogger.info("Client IP " + clientIP + " et Client port " + port);
-                    receiveInfoFromClient(clientIP, port);
-
-                    sendMusicMenu(clientIP, port); */
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -152,7 +128,7 @@ public class Server implements Runnable {
         return serverListeningSocket;
     }
 
-    public void findConnectionInfo(){
+    public void findConnectionInfo() {
 
         /**
          * @author Thomas
@@ -195,36 +171,15 @@ public class Server implements Runnable {
         ServerLogger.info("A client is connected");
 
         List<Object> clientPackage = new ArrayList<>();
-        ServerLogger.info("Client IP is " + serverExchangeSocket.getInetAddress() + " and communication port with server " + serverExchangeSocket.getPort());
+        List<Object> incomingRocket = null;
 
-
-        //InputStream inputStream = null;
         try {
             inputStream = serverExchangeSocket.getInputStream();
-        } catch (IOException e) {
-            ServerLogger.severe("IO Exception in InputStream " + e.toString());
-        }
-
-        // create a DataInputStream so we can read data from it.
-
-        //ObjectInputStream objectInputStream = null;
-        try {
             objectInputStream = new ObjectInputStream(inputStream);
-        } catch (IOException e) {
-            ServerLogger.severe("IO Exception in ObjectInputStream " + e.toString());
-        }
-
-
-        // Recuperation des informations de la fusee venant du client
-
-        List<Object> incomingRocket = null;
-        try {
             incomingRocket = (List<Object>) objectInputStream.readObject();
             ServerLogger.info("I've got from " + idClient + " this info " + incomingRocket);
-        } catch (IOException e) {
-            ServerLogger.severe("IOException " + e.toString());
-        } catch (ClassNotFoundException e) {
-            ServerLogger.severe("ClassNotFoundException " + e.toString());
+        } catch (IOException | ClassNotFoundException e) {
+            ServerLogger.severe("IO Exception or ClassNotFoundException in InputStream " + e.toString());
         }
 
         clientPackage.add(serverExchangeSocket);
@@ -238,7 +193,6 @@ public class Server implements Runnable {
         // 2 = une liste de musique ListMusic
         // 3 = une liste de taille SizeMusic
 
-        //clientsList.add(clientSocketOnServer.getPort());
         clientsList.add(clientPackage);
 
 
@@ -246,24 +200,20 @@ public class Server implements Runnable {
         System.out.println();
         System.out.println("Receiving from client :");
 
-        System.out.println("Taille de clientPackage : "+clientPackage.size());
+        System.out.println("Taille de clientPackage : " + clientPackage.size());
 
 
-
-        List<Object>clientRocket = (List<Object>) clientPackage.get(1);
+        List<Object> clientRocket = (List<Object>) clientPackage.get(1);
 
         InetAddress ia = (InetAddress) clientRocket.get(0);
-        System.out.println("InetAddress du client: "+ia);
+        System.out.println("InetAddress du client: " + ia);
         ServerLogger.info("Client IP :" + clientRocket.get(0));
 
         int portClientClient = (int) clientRocket.get(1);
-        System.out.println("Port clientClient: "+portClientClient);
+        System.out.println("Port clientClient: " + portClientClient);
 
-        System.out.println("Music list: "+clientRocket.get(2));
-        System.out.println("Music Size: "+clientRocket.get(3));
-
-
-
+        System.out.println("Music list: " + clientRocket.get(2));
+        System.out.println("Music Size: " + clientRocket.get(3));
 
     }
 
@@ -279,14 +229,14 @@ public class Server implements Runnable {
         boolean methodeActiv = true;
         List<Object> incomingMessage = null;
 
-        while(methodeActiv) {
+        while (methodeActiv) {
 
             serverExchangeSocket = serverListeningSocket.accept();
 
             ServerLogger.info("A client is connected");
 
             try {
-                InputStream  inputStream2 = serverExchangeSocket.getInputStream();
+                InputStream inputStream2 = serverExchangeSocket.getInputStream();
                 ObjectInputStream objectInputStream2 = new ObjectInputStream(inputStream2);
                 incomingMessage = (List<Object>) objectInputStream2.readObject();
 
@@ -306,16 +256,14 @@ public class Server implements Runnable {
             System.out.println(incomingMessage.get(1));
 
 
-       }
-
+        }
 
 
         return incomingMessage;
     }
 
 
-    public void findSelectedMusic(int numero){
-
+    public void findSelectedMusic(int numero) {
 
 
     }
@@ -331,16 +279,16 @@ public class Server implements Runnable {
          * INACTIVE NECESSITE UN THREAD
          */
 
-        for(int i = 0; i<clientsList.size(); i++) {
+        for (int i = 0; i < clientsList.size(); i++) {
 
-            sendCheckToClient(clientIP,port);
+            sendCheckToClient(clientIP, port);
 
         }
 
     }
 
 
-    public void sendCheckToClient (InetAddress clientIp, int clientPort){
+    public void sendCheckToClient(InetAddress clientIp, int clientPort) {
 
         /**
          * @author Thomas
@@ -364,10 +312,10 @@ public class Server implements Runnable {
 
             try {
                 while (true) {
-                    clientActive="a";
+                    clientActive = "a";
                     pout.println(clientActive);
                     pout.flush();
-                    System.out.println("Message send to client : "+clientActive);
+                    System.out.println("Message send to client : " + clientActive);
                     clientAnswer = buffin.readLine();
                     System.out.println("Received message from client : " + clientAnswer);
 
@@ -380,87 +328,69 @@ public class Server implements Runnable {
             pout.flush();
             pout.close();
 
-        }
-        catch (SocketException e) {
+        } catch (SocketException e) {
             System.out.println("Client is unreachable");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
 
-    public void sendSomethingToClient(InetAddress clientIp, int clientPort,Object object) throws IOException {
+    public void sendSomethingToClient(Socket socket, Object object) throws IOException {
 
         /**
-         * @author Thomas
+         * @author Thomas/Marina
          * Methode qui va etre utilisee pour envoyer des informations/un objet a un client.
          */
 
-        Socket clientSocket = null;
-        try {
-            System.out.println("ClientIp : "+clientIp);
-            System.out.println("ClientPort : "+clientPort);
-            clientSocket = new Socket(clientIp, clientPort);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        OutputStream outputStream = clientSocket.getOutputStream();
+        OutputStream outputStream = socket.getOutputStream();
 
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
         objectOutputStream.writeObject(object);
 
-
     }
 
 
-    public void sendMusicMenu() throws IOException {
+    public void sendMusicMenu(Socket socket) throws IOException {
 
-        /**
-         * @author Thomas
-         * methode utilisee pour envoyer a chaque client un menu de musique
-         * Il enverra uniquement la liste contenant les musiques des autres clients.
-         */
+    /**
+     * @author Thomas
+     * methode utilisee pour envoyer a chaque client un menu de musique
+     * Il enverra uniquement la liste contenant les musiques des autres clients.
+     */
 
         for(int i = 0; i<clientsList.size(); i++) {
-
-            InetAddress clientIp = retreivedIpFromClient(clientsList, i);
-            int port = retreivedPortFromClient(clientsList, i);
 
             String message = musicString(giveMusicList(i));
 
             if(message!="") {
-                sendSomethingToClient(clientIp, port, message);
+                sendSomethingToClient(socket, message);
             }
             else{
                 String sorry = "Aucun audio actuellement disponbile";
-                sendSomethingToClient(clientIp,port,sorry);
+                sendSomethingToClient(socket,sorry);
             }
         }
 
 
     }
-
-    public List<String> giveMusicList(int clientNumber){
+    public List<String> giveMusicList(int clientNumber) {
 
         /**
          * @author Thomas
          * Methode qui va recuperer la liste des audios d'un client.
          */
 
-        List<Object>tempList = new ArrayList<>();
-        List<Object>packageList = new ArrayList<>();
-        List<String>musicList = new ArrayList<>();
+        List<Object> tempList = new ArrayList<>();
+        List<Object> packageList = new ArrayList<>();
+        List<String> musicList = new ArrayList<>();
 
-        for(int i = 0; i<clientsList.size();i++){
+        for (int i = 0; i < clientsList.size(); i++) {
 
-            if(clientNumber==i){
+            if (clientNumber == i) {
                 continue;
-            }
-
-            else {
+            } else {
                 //On ouvre le bon clientList
                 tempList = (List<Object>) clientsList.get(i);
                 //clientListNr++;
@@ -477,7 +407,7 @@ public class Server implements Runnable {
 
     }
 
-    public String musicString (List<String> music){
+    public String musicString(List<String> music) {
 
         /**
          * @author Thomas
@@ -502,26 +432,11 @@ public class Server implements Runnable {
             messageTemp = messageTemp.substring(messageTemp.indexOf("myMusic") + 8, messageTemp.lastIndexOf("."));
             cpt++;
 
-            message += (cpt+". "+ messageTemp+"\n");
+            message += (cpt + ". " + messageTemp + "\n");
         }
 
 
         return message;
-
-    }
-
-    public int retreivedPortFromClient(List<Object>clientsList, int client){
-
-        /**
-         * @author Thomas
-         * Methode qui va recuperer l'adresse de port envoyee par un client
-         */
-
-        List<Object>tempList = (List<Object>) clientsList.get(client);
-        Socket socket  = (Socket) tempList.get(0);
-        int temp = socket.getPort();
-
-        return temp;
 
     }
 
@@ -541,47 +456,12 @@ public class Server implements Runnable {
         while (i.hasNext()) {
 
             String l = i.next();
-            l = l.substring(l.indexOf("myMusic")+8, l.lastIndexOf("."));
+            l = l.substring(l.indexOf("myMusic") + 8, l.lastIndexOf("."));
             System.out.println(cpt + ". " + l);
             cpt++;
         }
 
         System.out.println();
-
-    }
-    public InetAddress retreivedIpFromClient(List<Object>clientlist, int client){
-
-        /**
-
-         * @author Thomas
-
-         * Methode qui va recuperer l'adresse Ip envoyee par un client
-
-         */
-
-
-
-        List<Object>tempList = (List<Object>) clientlist.get(client);
-
-        List<Object>packageList = (List<Object>) tempList.get(1);
-
-        InetAddress temp = (InetAddress) packageList.get(0);
-
-
-
-        return temp;
-
-    }
-
-
-    @Override
-    public void run() {
-
-        /**
-         * @author Thomas
-         * methode inactive tentative d'utilisation des threads
-         */
-
 
     }
 }
