@@ -35,8 +35,9 @@ public class ClientAlpha  {
     //Client récupère le Socket qui est distribué à lui par le Serveur
 
 
-    private ServerSocket clientlisteningSocket;
-    private Socket exchangeSocket;
+    protected ServerSocket clientlisteningSocket;
+    protected Socket exchangeSocket;
+    protected Socket exchangeSocket2;
 
     private Socket socketForOtherClient;
     private Socket exchangeSocketForOtherClient;
@@ -126,7 +127,7 @@ public class ClientAlpha  {
 
 
         try {
-            Thread.sleep(10000);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -270,28 +271,34 @@ public class ClientAlpha  {
 
                 System.out.println("*************To Change!!!!!!!*****************");
 
-                File myFile = new File("C://temp//AudioStream2//myMusic//audio.wav");
-                byte[] mybytearray = new byte[(int)myFile.length()];
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
-                bis.read(mybytearray, 0, mybytearray.length);
+                List<Object>clientMessage = null;
 
 
-            //    BufferedInputStream is = new BufferedInputStream(socketForOtherClient.getInputStream());
-                OutputStream os = socketForOtherClient.getOutputStream();
-                os.write(mybytearray, 0, mybytearray.length);
-                os.flush();
+            do {
+                try {
+                    InputStream inputStream = exchangeSocket.getInputStream();
+                    ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                    clientMessage = (List<Object>) objectInputStream.readObject();
 
-           //     Thread acceptOtherClientThread = new Thread(socketForClient);
-           //     otherClientsList.add(socketForClient);
-           //     ClientLogger.info("Client " + cptloop + " added to the list " + otherClientsList);
-           //     acceptOtherClientThread.start();
+                    //    BufferedInputStream is = new BufferedInputStream(socketForOtherClient.getInputStream());
 
-               /* cptloop++;
 
-                if (cptloop == 1) {
-                    useOfMethode = false;
-                } */
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }while (clientMessage==null);
 
+            System.out.println(clientMessage.get(2));
+            File myFile = new File((String)clientMessage.get(2));
+            byte[] mybytearray = new byte[(int)myFile.length()];
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
+            bis.read(mybytearray, 0, (Integer) clientMessage.get(3));
+
+            OutputStream os = socketForOtherClient.getOutputStream();
+            os.write(mybytearray, 0, (Integer) clientMessage.get(3));
+            os.flush();
 
 
         } catch (IOException e) {
@@ -379,6 +386,44 @@ public class ClientAlpha  {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+
+    }
+
+    public List<Object> readIncomingMessage2(Socket socket) {
+
+        /**
+         * @author Thomas/Marina
+         * Methode qui va permettre de recuperer des informations entrantes venant du server.
+         * A MODIFIER POUR TRANSFORMATION UTILISATION DE LA LISTE D'OBJET
+         */
+
+        List<Object>incomingMessage = null;
+        //ObjectInputStream objectInputStream = null;
+
+        System.out.println("Incoming message");
+
+
+        try {
+            InputStream iS = socket.getInputStream();
+            System.out.println(iS);
+
+
+            ObjectInputStream objectInputStream = new ObjectInputStream(iS);
+            incomingMessage = (List<Object>) objectInputStream.readObject();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+
+        System.out.println("Message from :" + socket.getPort());
+
+
+
+
+        return incomingMessage;
 
     }
 

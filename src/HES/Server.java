@@ -70,10 +70,19 @@ public class Server {
         System.out.println("Le programme se trouve ici, prêt pour sendMusic");
         try {
             //!!!! ça marche, mais il faut separer les Clients
-            sendMusicMenu(serverExchangeSocket[1], 0);
-            sendMusicMenu(serverExchangeSocket[0], 1);
+            sendMusicMenu(serverExchangeSocket[1], 1);
+            sendMusicMenu(serverExchangeSocket[0], 0);
         } catch (IOException e) {
             ServerLogger.severe("IOException " + e.toString());
+            e.printStackTrace();
+        }
+
+        try {
+            int musicNumber = receiveMessageFromClient(serverExchangeSocket);
+
+            sendSomethingToClient(serverExchangeSocket[0],findSelectedMusic(serverExchangeSocket[1],musicNumber));
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -221,7 +230,48 @@ public class Server {
 
     }
 
-   // public List<Object> receiveMessageFromClient() throws IOException {
+    public int receiveMessageFromClient(Socket[] serverExchangeSocket) throws IOException {
+
+        /**
+         * @Thomas
+         * methode qui sert a recevoir le numero de selection audio venant du client
+         * NE FONCTIONNE PAS EN THREAD !! UNIQUEMENT PREMIER CHOIX DISPONIBLE
+         */
+
+
+        boolean methodeActiv = true;
+        int incomingMessage = 0;
+
+        while (methodeActiv) {
+
+            try {
+                InputStream inputStream2 = serverExchangeSocket[0].getInputStream();
+                ObjectInputStream objectInputStream2 = new ObjectInputStream(inputStream2);
+                incomingMessage = (Integer) objectInputStream2.readObject();
+
+            } catch (IOException e) {
+                ServerLogger.severe("IO Exception in ObjectInputStream " + e.toString());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            if(incomingMessage!=0){
+                ServerLogger.info("A client is connected");
+                ServerLogger.info("Audio selected");
+                methodeActiv=false;
+            }
+
+        }
+
+
+        return incomingMessage;
+    }
+
+
+
+
+
+    // public List<Object> receiveMessageFromClient() throws IOException {
 
         /**
          * @Thomas
@@ -282,42 +332,40 @@ public class Server {
 
     }
 
-    public List<Object> musicPlusConnectionInfo(Socket serverExchangeSocket, int numero){
+    public List<Object> findSelectedMusic(Socket serverExchangeSocket, int numero){
 
         /**
          * @author Thomas
-         * Methode pour retrouver �� l'aide d'un socket et d'un numero
+         * Methode pour retrouver a l'aide d'un socket et d'un numero
          */
 
         List<Object>checkPackageList = new ArrayList<>();
         Socket checkSocket = null;
         int portClientOrdering = serverExchangeSocket.getPort();
 
+        List<Object>clientInfo = null;
         List<String>musicList = null;
         List<Integer>musicSize = null;
 
         List<Object>musicRocket = new ArrayList<>();
 
+        checkPackageList = (List<Object>) clientsList.get(1);
 
-        for(int i = 0; i<clientsList.size();i++){
 
-            checkPackageList = (List<Object>) clientsList.get(i);
-            checkSocket = (Socket) checkPackageList.get(0);
-            int checkPort = checkSocket.getPort();
+        checkSocket = (Socket) checkPackageList.get(0);
+        clientInfo = (List<Object>) checkPackageList.get(1);
 
-            if(portClientOrdering!=checkPort){
 
-                musicList = (List<String>) checkPackageList.get(2);
-                musicSize = (List<Integer>) checkPackageList.get(3);
+        System.out.println(checkPackageList.size());
 
-                musicRocket.add(checkSocket.getInetAddress());
-                musicRocket.add(checkSocket.getPort());
-                musicRocket.add(musicList.get(numero-1));
-                musicRocket.add(musicSize.get(numero-1));
+        musicList = (List<String>) clientInfo.get(2);
+        musicSize = (List<Integer>) clientInfo.get(3);
 
-            }
+        musicRocket.add(clientInfo.get(0));
+        musicRocket.add(clientInfo.get(1));
+        musicRocket.add(musicList.get(numero-1));
+        musicRocket.add(musicSize.get(numero-1));
 
-        }
 
         return musicRocket;
 
