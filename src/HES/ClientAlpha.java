@@ -1,5 +1,7 @@
 package HES;
 
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
@@ -19,9 +21,9 @@ public class ClientAlpha  {
      * @author Thomas/Marina
      * Classe mère pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
      */
-    private final static Logger ClientLogger = Logger.getLogger("ClientLog");
+    protected final static Logger ClientLogger = Logger.getLogger("ClientLog");
 
-    private InetAddress localAddress = null;
+    protected InetAddress localAddress = null;
     private String interfaceName = "wlan1"; // ?? à determiner
 
     private String serverAddress = "192.168.0.15"; // à adapter!!!!!!!!!!!!!!!!!!
@@ -37,6 +39,8 @@ public class ClientAlpha  {
     private Socket exchangeSocket;
 
     private Socket socketForOtherClient;
+    private Socket exchangeSocketForOtherClient;
+    static ArrayList<ClientToClient> otherClientsList = new ArrayList<>();
 
     protected int portClientServer;
     protected int portClientClient;
@@ -126,7 +130,6 @@ public class ClientAlpha  {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-      //  listeningToClients();
 
 
     }
@@ -261,23 +264,35 @@ public class ClientAlpha  {
             ClientLogger.info("Client listening to other clients, port :" + clientlisteningSocket.getLocalPort());
             System.out.println();
 
-            while (useOfMethode) {
+           // while (useOfMethode) {
                 socketForOtherClient = clientlisteningSocket.accept();
+                ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
 
-                System.out.println("******************************************");
+                System.out.println("*************To Change!!!!!!!*****************");
 
-                System.out.println("I am listening ");
-                Thread acceptClientThread = new Thread(new AcceptClient(socketForOtherClient));
-                ClientLogger.info("Got connection to other Client " + socketForOtherClient.getLocalPort());
-                acceptClientThread.start();
+                File myFile = new File("C://temp//AudioStream2//myMusic//audio.wav");
+                byte[] mybytearray = new byte[(int)myFile.length()];
+                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
+                bis.read(mybytearray, 0, mybytearray.length);
 
-                cptloop++;
+
+            //    BufferedInputStream is = new BufferedInputStream(socketForOtherClient.getInputStream());
+                OutputStream os = socketForOtherClient.getOutputStream();
+                os.write(mybytearray, 0, mybytearray.length);
+                os.flush();
+
+           //     Thread acceptOtherClientThread = new Thread(socketForClient);
+           //     otherClientsList.add(socketForClient);
+           //     ClientLogger.info("Client " + cptloop + " added to the list " + otherClientsList);
+           //     acceptOtherClientThread.start();
+
+               /* cptloop++;
 
                 if (cptloop == 1) {
                     useOfMethode = false;
-                }
+                } */
 
-            }
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -286,32 +301,44 @@ public class ClientAlpha  {
 
     }
 
-    public void checkWithServer() throws IOException {
+    public void connectToOtherClient(InetAddress ipClient, int port){
 
-        /**
-         * @author Thomas
-         * Methode fonctionnelle mais inactive actuellement
-         * methode qui sert a repondre systematiquement au server par un message string
-         * De cette maniere le server sait apres quelques secondes si un client s'est deconnecte
-         */
-
-
-        BufferedReader buffin = new BufferedReader(new InputStreamReader(exchangeSocket.getInputStream()));
-        PrintWriter pout = new PrintWriter(exchangeSocket.getOutputStream());
-
-
-        do {
-            System.out.println("avant buffer " + incomingMessage);
-            incomingMessage = buffin.readLine();
-
-
-            System.out.println("Received message : " + incomingMessage);
-            pout.println(incomingMessage);
-            pout.flush();
-
+        System.out.println("IP " + ipClient + " port " + port);
+        try {
+            exchangeSocketForOtherClient = new Socket(ipClient, port);
+            ClientLogger.info("Client connected to other Client : socket" + exchangeSocketForOtherClient);
+        } catch (IOException e) {
+            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
+            e.printStackTrace();
         }
-        while (!incomingMessage.equals("quit"));
-        //while (incomingMessage!=0);
+
+        try {
+            BufferedInputStream bis = new BufferedInputStream(exchangeSocketForOtherClient.getInputStream());
+            System.out.println("Client start getting InputStream");
+
+
+            try {
+                System.out.println("Try to put bis into Player");
+                AudioPlayer player = new AudioPlayer(bis);
+                System.out.println("Try  to play");
+                player.play();
+                try {
+                    Thread.sleep(player.clip.getMicrosecondLength());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            } catch (UnsupportedAudioFileException e) {
+                e.printStackTrace();
+            } catch (LineUnavailableException e) {
+                e.printStackTrace();
+            }
+
+        } catch (IOException e) {
+            ClientLogger.severe("IOException while trying to get InputStream from other Client" + e.toString());
+            e.printStackTrace();
+        }
+
 
     }
 

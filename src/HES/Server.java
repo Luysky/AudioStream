@@ -77,7 +77,6 @@ public class Server {
             e.printStackTrace();
         }
 
-
     }
 
     public void startServerLogger() {
@@ -268,11 +267,6 @@ public class Server {
     } */
 
 
-    public void findSelectedMusic(int numero) {
-
-
-    }
-
     public void sendSomethingToClient(Socket socket, Object object) throws IOException {
 
         /**
@@ -288,7 +282,7 @@ public class Server {
 
     }
 
-    public List<Object> findSelectedMusic(Socket serverExchangeSocket, int numero){
+    public List<Object> musicPlusConnectionInfo(Socket serverExchangeSocket, int numero){
 
         /**
          * @author Thomas

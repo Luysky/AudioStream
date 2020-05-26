@@ -12,10 +12,12 @@ public class ClientTwo extends ClientAlpha {
         portClientClient = 25250;
 
 
+
       //  ClientTwo clientTwo = new ClientTwo();
 
         start();
         listeningToClients();
+
 
     }
 }
