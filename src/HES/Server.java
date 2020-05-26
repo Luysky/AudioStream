@@ -288,6 +288,47 @@ public class Server {
 
     }
 
+    public List<Object> findSelectedMusic(Socket serverExchangeSocket, int numero){
+
+        /**
+         * @author Thomas
+         * Methode pour retrouver �� l'aide d'un socket et d'un numero
+         */
+
+        List<Object>checkPackageList = new ArrayList<>();
+        Socket checkSocket = null;
+        int portClientOrdering = serverExchangeSocket.getPort();
+
+        List<String>musicList = null;
+        List<Integer>musicSize = null;
+
+        List<Object>musicRocket = new ArrayList<>();
+
+
+        for(int i = 0; i<clientsList.size();i++){
+
+            checkPackageList = (List<Object>) clientsList.get(i);
+            checkSocket = (Socket) checkPackageList.get(0);
+            int checkPort = checkSocket.getPort();
+
+            if(portClientOrdering!=checkPort){
+
+                musicList = (List<String>) checkPackageList.get(2);
+                musicSize = (List<Integer>) checkPackageList.get(3);
+
+                musicRocket.add(checkSocket.getInetAddress());
+                musicRocket.add(checkSocket.getPort());
+                musicRocket.add(musicList.get(numero-1));
+                musicRocket.add(musicSize.get(numero-1));
+
+            }
+
+        }
+
+        return musicRocket;
+
+    }
+
 
     public void sendMusicMenu(Socket socket, int clientN) throws IOException {
 
