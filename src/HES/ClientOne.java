@@ -13,7 +13,7 @@ public class ClientOne extends ClientAlpha {
 
         portClientClient = 25245;
 
-      //  ClientOne clientOne = new ClientOne();
+      start();
 
 
     }

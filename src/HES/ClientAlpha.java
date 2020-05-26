@@ -62,7 +62,9 @@ public class ClientAlpha  {
 
     private int selectedMusic = 0;
 
-    public ClientAlpha() {
+    public ClientAlpha() { }
+
+    protected void start (){
 
         clientName = myChoice(questionOne);
         startClientLogger();
@@ -76,17 +78,17 @@ public class ClientAlpha  {
             e.printStackTrace();
         }
 
+
+
         sendSomethingToSomeone(exchangeSocket, collectMyInfo());
         readIncomingMessage(exchangeSocket);
 
-        /*
+ /*
         Thread sendToServer = new Thread(new Runnable() {
             @Override
             public void run() {
+                sendSomethingToSomeone(exchangeSocket, collectMyInfo());
 
-                while(true){
-                    sendSomethingToSomeone(exchangeSocket, collectMyInfo());
-                }
             }
         });
 
@@ -94,18 +96,38 @@ public class ClientAlpha  {
         Thread readFromServer = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true){
-                    readIncomingMessage(exchangeSocket);
-                }
+
+                readIncomingMessage(exchangeSocket);
             }
-        }); */
+        });
+
+        sendToServer.start();
+        readFromServer.start();
+
+        if(sendToServer.isAlive()){
+            try{
+                sendToServer.join();
+            }catch(InterruptedException e){
+                ClientLogger.severe("InterruptedException in Thread sending to Server" + e.toString());
+            }
+        }
+/*
+        if(readFromServer.isAlive()){
+            try{
+                readFromServer.join();
+            }catch(InterruptedException e){
+                ClientLogger.severe("InterruptedException in Thread reading from Server" + e.toString());
+            }
+        } */
+
 
         try {
             Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        listeningToClients();
+      //  listeningToClients();
+
 
     }
 

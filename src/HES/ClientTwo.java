@@ -14,5 +14,8 @@ public class ClientTwo extends ClientAlpha {
 
       //  ClientTwo clientTwo = new ClientTwo();
 
+        start();
+        listeningToClients();
+
     }
 }
