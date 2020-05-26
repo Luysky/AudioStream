@@ -17,7 +17,7 @@ public class Server {
     private int idClient = 0;
 
     private ServerSocket serverListeningSocket = null;
-    protected Socket serverExchangeSocket = null;
+    protected Socket [] serverExchangeSocket = new Socket [2];
 
     private InetAddress localAddress = null;
     private String interfaceName = "wlan1"; // ?? à determiner
@@ -45,33 +45,38 @@ public class Server {
         while (useOfMethode) {
 
             try {
-                serverExchangeSocket = serverListeningSocket.accept();
+                serverExchangeSocket[cptloop] = serverListeningSocket.accept();
 
-                Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket));
+                Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket[cptloop]));
                 acceptClientThread.start();
 
-                ServerLogger.info("New Client is connected " + serverExchangeSocket);
-                registerClient(serverExchangeSocket);
+                ServerLogger.info("New Client is connected " + serverExchangeSocket[cptloop]);
+                registerClient(serverExchangeSocket[cptloop]);
                 cptloop++;
 
             } catch (IOException e) {
                 ServerLogger.severe("IOException " + e.toString());
                 e.printStackTrace();
             }
-            if (cptloop == 2) {
+            if (cptloop == 2) { //correct serverExchangeSocket if there are more clients
                 useOfMethode = false;
             }
         }
 
+        ServerLogger.info("Number of Clients connected " + cptloop);
+        ServerLogger.info("Client one" + serverExchangeSocket[0]);
+        ServerLogger.info("Client two" + serverExchangeSocket[1]);
 
         System.out.println("Le programme se trouve ici, prêt pour sendMusic");
         try {
             //!!!! ça marche, mais il faut separer les Clients
-            sendMusicMenu(serverExchangeSocket);
+            sendMusicMenu(serverExchangeSocket[1], 0);
+            sendMusicMenu(serverExchangeSocket[0], 1);
         } catch (IOException e) {
             ServerLogger.severe("IOException " + e.toString());
             e.printStackTrace();
         }
+
 
     }
 
@@ -217,7 +222,7 @@ public class Server {
 
     }
 
-    public List<Object> receiveMessageFromClient() throws IOException {
+   // public List<Object> receiveMessageFromClient() throws IOException {
 
         /**
          * @Thomas
@@ -225,7 +230,7 @@ public class Server {
          * NE FONCTIONNE PAS EN THREAD !! UNIQUEMENT PREMIER CHOIX DISPONIBLE
          */
 
-
+/*
         boolean methodeActiv = true;
         List<Object> incomingMessage = null;
 
@@ -260,81 +265,13 @@ public class Server {
 
 
         return incomingMessage;
-    }
+    } */
 
 
     public void findSelectedMusic(int numero) {
 
 
     }
-
-
-    public void checkIfClientActif(InetAddress clientIP, int port) throws IOException {
-
-        /**
-         * @author Thomas
-         * methode qui va permettre de faire un check de presence de chaque client
-         * chaque 10 secondes.
-         *
-         * INACTIVE NECESSITE UN THREAD
-         */
-
-        for (int i = 0; i < clientsList.size(); i++) {
-
-            sendCheckToClient(clientIP, port);
-
-        }
-
-    }
-
-
-    public void sendCheckToClient(InetAddress clientIp, int clientPort) {
-
-        /**
-         * @author Thomas
-         * methode qui va servir au server de control de la connection d'un client
-         * Automatiquement chaque 10 seconces le server va echanger des messages avec tous les clients
-         * il va simplement envoyer un message pout avec la lettre a
-         * et le client va automatiquement lui envoyer en retour cettte lettre
-         * si le client se deconnecte la methode va le detecter et va generer un message d'erreur
-         *
-         * INACTIVE CAR NECESSITE UN THREAD
-         * A MODIFIER POUR INTEGRER AVEC LIST MUSIC, ETC
-         */
-
-
-        try {
-            serverExchangeSocket = serverListeningSocket.accept();
-            InputStream iS = serverExchangeSocket.getInputStream();
-            InputStreamReader iSr = new InputStreamReader(iS);
-            BufferedReader buffin = new BufferedReader(iSr);
-            PrintWriter pout = new PrintWriter(serverExchangeSocket.getOutputStream());
-
-            try {
-                while (true) {
-                    clientActive = "a";
-                    pout.println(clientActive);
-                    pout.flush();
-                    System.out.println("Message send to client : " + clientActive);
-                    clientAnswer = buffin.readLine();
-                    System.out.println("Received message from client : " + clientAnswer);
-
-                    Thread.sleep(10 * 1000);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            pout.flush();
-            pout.close();
-
-        } catch (SocketException e) {
-            System.out.println("Client is unreachable");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
 
     public void sendSomethingToClient(Socket socket, Object object) throws IOException {
 
@@ -352,17 +289,14 @@ public class Server {
     }
 
 
-    public void sendMusicMenu(Socket socket) throws IOException {
+    public void sendMusicMenu(Socket socket, int clientN) throws IOException {
 
     /**
-     * @author Thomas
+     * @author Thomas/Marina
      * methode utilisee pour envoyer a chaque client un menu de musique
      * Il enverra uniquement la liste contenant les musiques des autres clients.
      */
-
-        for(int i = 0; i<clientsList.size(); i++) {
-
-            String message = musicString(giveMusicList(i));
+            String message = musicString(giveMusicList(clientN));
 
             if(message!="") {
                 sendSomethingToClient(socket, message);
@@ -371,10 +305,8 @@ public class Server {
                 String sorry = "Aucun audio actuellement disponbile";
                 sendSomethingToClient(socket,sorry);
             }
-        }
-
-
     }
+
     public List<String> giveMusicList(int clientNumber) {
 
         /**
