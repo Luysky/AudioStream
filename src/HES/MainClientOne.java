@@ -1,10 +1,8 @@
 package HES;
 
-import java.io.IOException;
-
 public class MainClientOne {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) {
 
         ClientOne clientOne = new ClientOne();
 

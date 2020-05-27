@@ -1,28 +1,30 @@
 package HES;
 
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class AcceptClient implements Runnable {
 
-    protected Socket clientSocketOnServer;
-    private int clientNumber = 1;
+    /**
+     * Marina
+     * Classe servant a l'enregistrement de nouveaux clients.
+     */
 
-    //Constructor
+
+    protected Socket clientSocketOnServer;
+
     public AcceptClient(Socket s){
         clientSocketOnServer = s;
     }
 
-    //overwrite the thread run()
+
     public void run() {
 
         try {
-               // clientSocketOnServer = socketServer.accept(); // A client wants to connect, we accept him
-                System.out.println("Client Nr "+clientNumber+ " is connected");
-                System.out.println("Port " + clientSocketOnServer.getPort());
+                System.out.println();
+                System.out.println("******************************************");
+                System.out.println("A new client is connected");
+                System.out.println("Client Port : " + clientSocketOnServer.getPort());
                 Thread.sleep(3000);
-                clientNumber++;
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -30,7 +32,4 @@ public class AcceptClient implements Runnable {
 
     }
 
-    public Socket getClientSocketOnServer(){
-        return clientSocketOnServer;
-    }
 }

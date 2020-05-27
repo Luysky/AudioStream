@@ -1,13 +1,10 @@
 package HES;
 
-import java.io.IOException;
-
 public class MainClientTwo {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args)  {
 
         ClientTwo clientTwo = new ClientTwo();
-
 
     }
 }

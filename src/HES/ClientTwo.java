@@ -1,33 +1,24 @@
 package HES;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.util.List;
 
 public class ClientTwo extends ClientAlpha {
 
-    public ClientTwo() throws IOException, InterruptedException {
 
-        //clientName="Marshasha";
+    /**
+     * @author Thomas
+     * Classe servant a simuler l'utilisation de deux clients sur deux pc différents
+     * En l'absence d'une gestion total avec des threads nous avons utilise un fonctionnement sequentiel
+     * Cette classe represente un client partageant un audio avec un client demandeur
+     */
+
+
+    public ClientTwo() {
+
         myMusicRepertory="C://temp//AudioStream2//myMusic";
-
         portClientClient = 25250;
 
-
-
-      //  ClientTwo clientTwo = new ClientTwo();
-
         start();
-
-        List<Object>infoSong = null;
-
-        infoSong = listenTo();
-
-        String chanson = (String) infoSong.get(2);
-        System.out.println("Song : "+chanson);
-
-        listeningToClients(infoSong);
-
+        giveClientAnAudio();
 
     }
 }

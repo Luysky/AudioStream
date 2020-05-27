@@ -4,9 +4,14 @@ import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
+
 public class CustomFormatter extends Formatter {
 
-    //Class a decrire
+    /**
+     * @author Marina
+     * Classe servant a formater le logger
+     */
+
 
     @Override
     public String format(LogRecord record) {
