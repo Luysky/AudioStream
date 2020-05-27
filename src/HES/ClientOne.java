@@ -2,7 +2,10 @@ package HES;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.util.List;
 import java.util.Scanner;
 
@@ -24,14 +27,12 @@ public class ClientOne extends ClientAlpha {
         //byte[] mybytearray = new byte[(int)myFile.length()];
 
         start();
+
+        //Envoi au Server de la chanson voulue
         sendSomethingToSomeone(exchangeSocket, musicChoice());
-        //Thread.sleep(10000);
 
-
-
+        //Recuperation depuis le server
         List<Object> clientMusicInfo =  readIncomingMessage2(exchangeSocket);
-
-        System.out.println("Je suis là");
 
         InetAddress ipOfOtherClient = (InetAddress) clientMusicInfo.get(0);
         int port = (Integer) clientMusicInfo.get(1);
@@ -39,6 +40,22 @@ public class ClientOne extends ClientAlpha {
         System.out.println(ipOfOtherClient);
         System.out.println(port);
 
+        //Thread.sleep(10000);
+
+        Socket comSocket = null;
+
+        //System.out.println("IP " + ipClient + " port " + port);
+        try {
+            comSocket = new Socket(ipOfOtherClient, port);
+            ClientLogger.info("Client connected to other Client : socket" + ipOfOtherClient);
+        } catch (IOException e) {
+            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
+            e.printStackTrace();
+        }
+
+
+        sendSomethingToSomeone(comSocket,clientMusicInfo);
+        Thread.sleep(10000);
         connectToOtherClient(ipOfOtherClient, port);
 
 

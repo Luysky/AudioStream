@@ -20,8 +20,7 @@ public class Server {
     protected Socket [] serverExchangeSocket = new Socket [2];
 
     private InetAddress localAddress = null;
-    private String interfaceName = "wlan1"; // ?? à determiner
-    private int ClientNumber = 1; // pour le premier client
+    private String interfaceName = "wlan1";
 
     private Calendar currentDate = Calendar.getInstance();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
@@ -30,8 +29,6 @@ public class Server {
     private InputStream inputStream = null;
     private ObjectInputStream objectInputStream = null;
 
-    private String clientActive = null;
-    private String clientAnswer = null;
 
 
     public Server() {
@@ -69,7 +66,7 @@ public class Server {
 
         System.out.println("Le programme se trouve ici, prêt pour sendMusic");
         try {
-            //!!!! ça marche, mais il faut separer les Clients
+
             sendMusicMenu(serverExchangeSocket[1], 1);
             sendMusicMenu(serverExchangeSocket[0], 0);
         } catch (IOException e) {

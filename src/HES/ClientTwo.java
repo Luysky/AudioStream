@@ -2,6 +2,7 @@ package HES;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
 
 public class ClientTwo extends ClientAlpha {
 
@@ -17,7 +18,15 @@ public class ClientTwo extends ClientAlpha {
       //  ClientTwo clientTwo = new ClientTwo();
 
         start();
-        listeningToClients();
+
+        List<Object>infoSong = null;
+
+        infoSong = listenTo();
+
+        String chanson = (String) infoSong.get(2);
+        System.out.println("Song : "+chanson);
+
+        listeningToClients(infoSong);
 
 
     }

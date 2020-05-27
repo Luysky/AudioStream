@@ -247,7 +247,101 @@ public class ClientAlpha  {
         }
     }
 
-    public void listeningToClients() {
+    public List<Object>  listenTo() {
+
+        boolean useOfMethode = true;
+        int cptloop = 0;
+        List<Object> clientMessage = null;
+
+        try {
+
+            clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
+
+
+            // while (useOfMethode) {
+            socketForOtherClient = clientlisteningSocket.accept();
+            ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
+
+
+            //do {
+            try {
+                InputStream inputStream = socketForOtherClient.getInputStream();
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                clientMessage = (List<Object>) objectInputStream.readObject();
+
+                //    BufferedInputStream is = new BufferedInputStream(socketForOtherClient.getInputStream());
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                ClientLogger.severe("IO exception " + e.toString());
+            }
+
+            clientlisteningSocket.close();
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Test clientMessage");
+        return clientMessage;
+    }
+
+    public void listeningToClients(List<Object>infoSong) {
+
+        /**
+         * @author Thomas/Marina
+         * Methode qui sert a recevoir depuis le server le menu des audios
+         * c'est egalement ici que l'on fait le choix de l'audio que l'on veut
+         */
+
+        boolean useOfMethode = true;
+        int cptloop = 0;
+
+            try {
+
+                clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
+                socketForOtherClient = clientlisteningSocket.accept();
+
+
+                System.out.println("*************Music ON!*****************");
+
+                System.out.println(infoSong.get(2));
+
+                File myFile = new File((String) infoSong.get(2));
+                byte[] mybytearray = new byte[(int) myFile.length()];
+
+
+                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
+                int check = (Integer) infoSong.get(3);
+                System.out.println(check);
+                //bis.read(mybytearray, 0, (Integer) infoSong.get(3));
+                bis.read(mybytearray, 0, mybytearray.length);
+
+                System.out.println("Test ");
+
+                OutputStream os = socketForOtherClient.getOutputStream();
+                System.out.println("Test 2 ");
+
+                //os.write(mybytearray, 0, (Integer) infoSong.get(3));
+                os.write(mybytearray, 0, mybytearray.length);
+
+                os.flush();
+
+                System.out.println("On est passé !");
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                ClientLogger.severe("IO exception " + e.toString());
+            }
+
+    }
+
+
+    public void listeningToClients2() {
 
         /**
          * @author Thomas/Marina
@@ -260,23 +354,23 @@ public class ClientAlpha  {
 
         try {
 
-            clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
-            ClientLogger.info("Default Timeout :" + clientlisteningSocket.getSoTimeout());
-            ClientLogger.info("Client listening to other clients, port :" + clientlisteningSocket.getLocalPort());
-            System.out.println();
+            //clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
+            //ClientLogger.info("Default Timeout :" + clientlisteningSocket.getSoTimeout());
+            //ClientLogger.info("Client listening to other clients, port :" + clientlisteningSocket.getLocalPort());
+            //System.out.println();
 
            // while (useOfMethode) {
-                socketForOtherClient = clientlisteningSocket.accept();
-                ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
+                //socketForOtherClient = clientlisteningSocket.accept();
+                //ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
 
                 System.out.println("*************To Change!!!!!!!*****************");
 
                 List<Object>clientMessage = null;
 
 
-            do {
+            //do {
                 try {
-                    InputStream inputStream = exchangeSocket.getInputStream();
+                    InputStream inputStream = socketForOtherClient.getInputStream();
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                     clientMessage = (List<Object>) objectInputStream.readObject();
 
@@ -288,7 +382,7 @@ public class ClientAlpha  {
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-            }while (clientMessage==null);
+            //}while (clientMessage==null);
 
             System.out.println(clientMessage.get(2));
             File myFile = new File((String)clientMessage.get(2));
@@ -319,32 +413,38 @@ public class ClientAlpha  {
             e.printStackTrace();
         }
 
-        try {
-            BufferedInputStream bis = new BufferedInputStream(exchangeSocketForOtherClient.getInputStream());
-            System.out.println("Client start getting InputStream");
+        boolean musicOn=true;
 
+        do {
 
             try {
-                System.out.println("Try to put bis into Player");
-                AudioPlayer player = new AudioPlayer(bis);
-                System.out.println("Try  to play");
-                player.play();
+                BufferedInputStream bis = new BufferedInputStream(exchangeSocketForOtherClient.getInputStream());
+                System.out.println("Client start getting InputStream");
+
+
                 try {
-                    Thread.sleep(player.clip.getMicrosecondLength());
-                } catch (InterruptedException e) {
+                    System.out.println("Try to put bis into Player");
+                    AudioPlayer player = new AudioPlayer(bis);
+                    System.out.println("Try  to play");
+                    player.play();
+                    try {
+                        Thread.sleep(player.clip.getMicrosecondLength());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                } catch (UnsupportedAudioFileException e) {
+                    e.printStackTrace();
+                } catch (LineUnavailableException e) {
                     e.printStackTrace();
                 }
 
-            } catch (UnsupportedAudioFileException e) {
-                e.printStackTrace();
-            } catch (LineUnavailableException e) {
+            } catch (IOException e) {
+                ClientLogger.severe("IOException while trying to get InputStream from other Client" + e.toString());
                 e.printStackTrace();
             }
-
-        } catch (IOException e) {
-            ClientLogger.severe("IOException while trying to get InputStream from other Client" + e.toString());
-            e.printStackTrace();
         }
+        while (musicOn);
 
 
     }
