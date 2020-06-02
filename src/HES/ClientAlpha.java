@@ -17,15 +17,16 @@ import java.util.stream.Stream;
 
 public class ClientAlpha  {
 
+
     /**
      * Thomas/Marina
      * Classe mere pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
      */
 
     protected final static Logger ClientLogger = Logger.getLogger("ClientLog");
-    protected Socket exchangeSocket;
-    protected String myMusicRepertory = "C://temp//AudioStream//myMusic";
-    protected int portClientClient;
+    private Socket exchangeSocket;
+    private String myMusicRepertory = "C://temp//AudioStream//myMusic";
+    private int portClientClient;
 
     private InetAddress localAddress = null;
     private String serverAddress = "192.168.0.15";
@@ -42,7 +43,11 @@ public class ClientAlpha  {
     private String dateNow = formatter.format(currentDate.getTime());
 
 
-    public ClientAlpha() { }
+    public ClientAlpha() {
+
+        //whoAreYou();
+
+    }
 
     protected void start (){
 
@@ -164,12 +169,12 @@ public class ClientAlpha  {
         }
     }
 
-    protected List<Object> receiveClientAudioRequest() {
+    protected List<Object> receiveClientRequest() {
 
         /**
          * author Thomas
          * Methode servant a la recuperation de la demande de chanson d'un client.
-         * On le recupere et on l'enregistre dans une List d'object
+         * On le recupere et on l'enregistre dans une List d'object puis on écoute le morceau reçu
          */
 
         System.out.println("******************************************");
@@ -200,14 +205,14 @@ public class ClientAlpha  {
         }
 
         return clientMessage;
+
     }
 
-    protected void listeningToClients(List<Object>infoSong) {
+    protected void transferAudio(List<Object>infoSong) {
 
         /**
          * @author Thomas/Marina
-         * Methode qui sert a recevoir depuis le server le menu des audios
-         * c'est egalement ici que l'on fait le choix de l'audio que l'on veut
+         * Methode qui sert a diffuser depuis le client l audio qui a ete demande
          */
 
             try {
@@ -499,8 +504,91 @@ public class ClientAlpha  {
          * pour la reception d un requete d un autre client pour un audio jusqu a sa diffusion
          */
 
-        List<Object>infoSong = receiveClientAudioRequest();
-        listeningToClients(infoSong);
+        List<Object>request = receiveClientRequest();
+        transferAudio(request);
+
+    }
+
+    public void whoAreYou(){
+
+        /**
+         * @author Thomas
+         * Methode servant a effectuer la demonstration de maniere sequentielle.
+         * Le premier client qu on utilise doit OBLIGATOIREMENT se definir comme nr. 1 Listener Client
+         * Le server a ete defini dans ce sens la.
+         */
+
+
+        System.out.println("******************************************");
+        System.out.println("Welcome to AudioStream!");
+        System.out.println("Please select your role : \n 1. Listener Client \n 2. Broadcaster Client ");
+        System.out.println("******************************************");
+
+        int clientNumber = myChoice();
+
+        switch (clientNumber){
+
+            case 1 :    System.out.println("You have selected Client Listener");
+                        System.out.println("******************************************");
+                        myMusicRepertory="C://temp//AudioStream//myMusic";
+                        portClientClient = 25245;
+
+                        start();
+                        sendSomethingToSomeone(exchangeSocket, musicChoice());
+                        askClientForAnAudio();
+                        break;
+
+            case 2 :    System.out.println("You have selected Client Broadcaster");
+                        System.out.println("******************************************");
+                        myMusicRepertory="C://temp//AudioStream2//myMusic";
+                        portClientClient = 25250;
+
+                        start();
+                        giveClientAnAudio();
+                        break;
+
+            default:    System.out.println("Sorry, something went wrong please restart");
+                        System.out.println("******************************************");
+
+        }
+
+    }
+
+    private int myChoice() {
+
+        /**
+         * @Thomas
+         * methode qui permet de recuperer un choix d'un client dans la console
+         */
+
+        int myChoice = 0;
+        boolean check = false;
+
+        do {
+            Scanner scan = new Scanner(System.in);
+            System.out.println("Please enter the number of your song ");
+
+            try {
+                myChoice = scan.nextInt();
+
+                if(myChoice<1 ||myChoice>2){
+                    do{
+                        System.out.println("Choose only 1 or 2! Please try again.");
+                        myChoice = scan.nextInt();
+                    }
+                    while (myChoice<1||myChoice>2);
+
+                }
+
+                check=true;
+            } catch (InputMismatchException e) {
+                System.out.println("Number only !");
+                scan.next();
+            }
+        }
+        while (check==false);
+
+        return myChoice;
     }
 
 }

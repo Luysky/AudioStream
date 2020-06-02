@@ -11,12 +11,7 @@ public class ClientOne extends ClientAlpha {
 
     public ClientOne()  {
 
-        myMusicRepertory="C://temp//AudioStream//myMusic";
-        portClientClient = 25245;
-
-        start();
-        sendSomethingToSomeone(exchangeSocket, musicChoice());
-        askClientForAnAudio();
+        whoAreYou();
 
     }
 }

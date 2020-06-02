@@ -14,11 +14,7 @@ public class ClientTwo extends ClientAlpha {
 
     public ClientTwo() {
 
-        myMusicRepertory="C://temp//AudioStream2//myMusic";
-        portClientClient = 25250;
-
-        start();
-        giveClientAnAudio();
+        whoAreYou();
 
     }
 }

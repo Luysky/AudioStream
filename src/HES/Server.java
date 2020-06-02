@@ -107,7 +107,6 @@ public class Server {
         try {
             int musicNumber = receiveMessageFromClient(serverExchangeSocket);
             sendSomethingToClient(serverExchangeSocket[0],findSelectedMusic(musicNumber));
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -227,6 +226,7 @@ public class Server {
 
         List<Object> clientRocket = (List<Object>) clientPackage.get(1);
         InetAddress ia = (InetAddress) clientRocket.get(0);
+
         System.out.println("Client InetAddress: " + ia);
         ServerLogger.info("Client IP :" + clientRocket.get(0));
         int portClientClient = (int) clientRocket.get(1);
