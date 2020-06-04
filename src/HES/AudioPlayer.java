@@ -1,16 +1,16 @@
 package HES;
 
 import javax.sound.sampled.*;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * @author Marina
+ * Classe servant a lire un clip audio reçu par un autre client en Inputstream
+ */
+
 public class AudioPlayer {
 
-    /**
-     * Marina
-     * Classe servant a lire un clip audio reçu par un autre client en Inputstream
-     */
 
     public Clip clip;
     public String status;

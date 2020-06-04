@@ -1,5 +1,6 @@
 package HES;
 
+
 import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
@@ -8,18 +9,17 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * author Thomas/Marina
+ * Classe server regroupant toutes les fonctionnalites lies a l utilisation d un serveur pour cet exercice
+ */
 
 public class Server {
-
-    /**
-     * author Thomas/Marina
-     * Classe server regroupant toutes les fonctionnalites lies a l utilisation d un serveur pour cet exercice
-     */
 
     private final static Logger ServerLogger = Logger.getLogger("ServerLog");
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 0;
-    private ServerSocket serverListeningSocket = null;
+    private ServerSocket serverListeningSocket;
     private Socket [] serverExchangeSocket = new Socket [2];
     private InetAddress localAddress = null;
     private String interfaceName = "wlan1";
@@ -40,12 +40,12 @@ public class Server {
 
     }
 
-    private void acceptNewClients(){
+    /**
+     * @author Marina
+     * Methode servant a accepte avec un thread chaque nouveau client jusqu'a un maximum de 2.
+     */
 
-        /**
-         * @author Marina
-         * Methode servant a accepte avec un thread chaque nouveau client jusqu'a un maximum de 2.
-         */
+    private void acceptNewClients(){
 
         boolean useOfMethode = true;
         int cptloop = 0;
@@ -77,48 +77,51 @@ public class Server {
 
     }
 
-    private void dispatchMusicMenuToClient(){
+    /**
+     * @author Thomas
+     * Methode servant a envoyer a chaque client une liste d audio de l'autre client
+     */
 
-        /**
-         * @author Thomas
-         * Methode servant a envoyer a chaque client une liste d audio de l'autre client
-         */
+    private void dispatchMusicMenuToClient(){
 
         System.out.println("******************************************");
         System.out.println("Server send music list to clients");
 
         try {
-            sendMusicMenu(serverExchangeSocket[1], 1);
+
             sendMusicMenu(serverExchangeSocket[0], 0);
+            sendMusicMenu(serverExchangeSocket[1], 1);
+
         } catch (IOException e) {
             ServerLogger.severe("IOException " + e.toString());
             e.printStackTrace();
         }
     }
 
+    /**
+     * @author Thomas
+     * Methode utilisee dans la version sequentielle uniquement
+     * sert a envoyer a ClientOne les informations pour qu il puisse demande a ClientTwo l audio
+     */
+
     private void giveClientMusicInfo(){
 
-        /**
-         * @author Thomas
-         * Methode utilisee dans la version sequentielle uniquement
-         * sert a envoyer a ClientOne les informations pour qu il puisse demande a ClientTwo l audio
-         */
-
         try {
-            int musicNumber = receiveMessageFromClient(serverExchangeSocket);
-            sendSomethingToClient(serverExchangeSocket[0],findSelectedMusic(musicNumber));
+            int musicNumber = receiveMessageFromClient();
+            sendSomethingToClient(findTheSocket(),findSelectedMusic(musicNumber));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    private void startServerLogger() {
+    /**
+     * @author Marina
+     * Methode servant a initier le logger pour le Server
+     */
 
-        /**
-         * @author Marina
-         * Methode servant a initier le logger pour le Server
-         */
+    private void startServerLogger() {
 
         FileHandler fh = null;
         try {
@@ -136,13 +139,14 @@ public class Server {
 
     }
 
-    private ServerSocket startServerSocket() {
+    /**
+     * @author Thomas
+     * @author Marina
+     * Methode servant a initier les Sockets de Server et d'echange chez le Server,
+     * le Serveur reste toujours en écoute et accepte tous les clients qui se connectent.
+     */
 
-        /**
-         * @Thomas_et_Marina
-         * Methode servant a initier les Sockets de Server et d'echange chez le Server,
-         * le Serveur reste toujours en écoute et accepte tous les clients qui se connectent.
-         */
+    private ServerSocket startServerSocket() {
 
         try {
             findConnectionInfo();
@@ -164,13 +168,13 @@ public class Server {
         return serverListeningSocket;
     }
 
-    private void findConnectionInfo() {
+    /**
+     * @author Thomas
+     * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
+     * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
+     */
 
-        /**
-         * @author Thomas
-         * Methode qui va faire les recherches de l'interface et de l'adresse IP utilisé par le server.
-         * De cette manière le code fonctionne sur n'importe quelle machine sans réglage supplémentaire.
-         */
+    private void findConnectionInfo() {
 
         NetworkInterface ni = null;
         try {
@@ -194,14 +198,15 @@ public class Server {
 
     }
 
-    private void registerClient(Socket serverExchangeSocket) {
+    /**
+     * @author Thomas
+     * @author Marina
+     * Methode integre la recuperation de la fusee d'information du client (Regroupement d'infor de base du client)
+     * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
+     * de tous les clients
+     */
 
-        /**
-         * @Thomas/Marina
-         * Methode integre la recuperation de la fusee d'information du client (Regroupement d'infor de base du client)
-         * ainsi que le stockage des elements dans une nouvelle arrayList qui regroupera toutes les infos
-         * de tous les clients
-         */
+    private void registerClient(Socket serverExchangeSocket) {
 
         idClient++;
         ServerLogger.info("A client is connected");
@@ -235,13 +240,12 @@ public class Server {
 
     }
 
-    private int receiveMessageFromClient(Socket[] serverExchangeSocket) throws IOException {
+    /**
+     * @author Thomas
+     * methode qui sert a recevoir le numero de selection audio venant du client
+     */
 
-        /**
-         * @Thomas
-         * methode qui sert a recevoir le numero de selection audio venant du client
-         */
-
+    private int receiveMessageFromClient() {
 
         boolean methodeActiv = true;
         int incomingMessage = 0;
@@ -249,8 +253,9 @@ public class Server {
         while (methodeActiv) {
 
             try {
-                InputStream inputStream2 = serverExchangeSocket[0].getInputStream();
-                ObjectInputStream objectInputStream2 = new ObjectInputStream(inputStream2);
+
+                InputStream inputStream3 = findTheSocket().getInputStream();
+                ObjectInputStream objectInputStream2 = new ObjectInputStream(inputStream3);
                 incomingMessage = (Integer) objectInputStream2.readObject();
 
             } catch (IOException e) {
@@ -269,39 +274,87 @@ public class Server {
         return incomingMessage;
     }
 
+    /**
+     * @author Thomas
+     * Methode qui va trouver le socket que l on doit utiliser lors d un envoi.
+     * Le socket est determine par le choix utilisateur fait au debut du programme avec clientRole
+     */
 
+    private Socket findTheSocket(){
+
+        int clientRole;
+        int number = 0;
+        Socket clientSocket;
+        do {
+
+            List<Object>checkPackageList;
+            List<Object>rocketList;
+
+            checkPackageList = (List<Object>) clientsList.get(number);
+            clientSocket = (Socket) checkPackageList.get(0);
+            rocketList = (List<Object>) checkPackageList.get(1);
+            clientRole = (Integer)rocketList.get(4);
+            number++;
+        }
+        while (clientRole!=2);
+
+        int verif = clientSocket.getPort();
+        int socket1 = serverExchangeSocket[0].getPort();
+
+        if(verif==socket1){
+            return serverExchangeSocket[1];
+        }
+        else{
+            return serverExchangeSocket[0];
+        }
+
+    }
+
+
+    /**
+     * @author Thomas/Marina
+     * Methode qui va etre utilisee pour envoyer des informations/un objet a un client.
+     */
 
     private void sendSomethingToClient(Socket socket, Object object) throws IOException {
-
-        /**
-         * @author Thomas/Marina
-         * Methode qui va etre utilisee pour envoyer des informations/un objet a un client.
-         */
 
         OutputStream outputStream = socket.getOutputStream();
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
         objectOutputStream.writeObject(object);
     }
 
+    /**
+     * @author Thomas
+     * Methode pour retrouver l'audio a l'aide d'un numero
+     * Le bon socket est determine par le role enregistre au debut du programme.
+     */
+
     private List<Object> findSelectedMusic(int numero){
 
-        /**
-         * @author Thomas
-         * Methode pour retrouver a l'aide d'un socket et d'un numero
-         */
+        int clientRole;
+        int number = 0;
+        Socket clientSocket = null;
+        do {
 
-        List<Object>checkPackageList = null;
-        List<Object>clientInfo = null;
-        List<String>musicList = null;
-        List<Integer>musicSize = null;
+            List<Object>checkPackageList;
+            List<Object>rocketList;
+
+            checkPackageList = (List<Object>) clientsList.get(number);
+            rocketList = (List<Object>) checkPackageList.get(1);
+            clientRole = (Integer)rocketList.get(4);
+            number++;
+        }
+        while (clientRole!=2);
+
+        List<Object>checkPackageList;
+        List<Object>clientInfo;
+        List<String>musicList;
+        List<Integer>musicSize;
 
         List<Object>musicRocket = new ArrayList<>();
 
-        checkPackageList = (List<Object>) clientsList.get(1);
+        checkPackageList = (List<Object>) clientsList.get(number-1);
         clientInfo = (List<Object>) checkPackageList.get(1);
-
-        System.out.println(checkPackageList.size());
-
         musicList = (List<String>) clientInfo.get(2);
         musicSize = (List<Integer>) clientInfo.get(3);
 
@@ -314,33 +367,34 @@ public class Server {
     }
 
 
-    private void sendMusicMenu(Socket socket, int clientN) throws IOException {
-
     /**
      * @author Thomas/Marina
      * methode utilisee pour envoyer a chaque client un menu de musique
      * Il enverra uniquement la liste contenant les musiques des autres clients.
      */
-            String message = musicString(giveMusicList(clientN));
 
-            if(message!="") {
-                sendSomethingToClient(socket, message);
-            }
-            else{
-                String sorry = "No audio available";
-                sendSomethingToClient(socket,sorry);
-            }
+    private void sendMusicMenu(Socket socket, int clientN) throws IOException {
+
+        String message = musicString(giveMusicList(clientN));
+
+        if(!message.equals("")) {
+            sendSomethingToClient(socket, message);
+        }
+        else{
+            String sorry = "No audio available";
+            sendSomethingToClient(socket,sorry);
+        }
     }
+
+    /**
+     * @author Thomas
+     * Methode qui va recuperer la liste des audios d'un client.
+     */
 
     private List<String> giveMusicList(int clientNumber) {
 
-        /**
-         * @author Thomas
-         * Methode qui va recuperer la liste des audios d'un client.
-         */
-
-        List<Object> tempList = new ArrayList<>();
-        List<Object> packageList = new ArrayList<>();
+        List<Object> tempList;
+        List<Object> packageList;
         List<String> musicList = new ArrayList<>();
 
         for (int i = 0; i < clientsList.size(); i++) {
@@ -356,15 +410,15 @@ public class Server {
         return musicList;
     }
 
+    /**
+     * @author Thomas
+     * Methode servant a retourner une liste d audio
+     */
+
     private String musicString(List<String> music) {
 
-        /**
-         * @author Thomas
-         * Methode servant a retourner une liste d audio
-         */
-
         String message = "";
-        String messageTemp = "";
+        String messageTemp;
 
         int cpt = 0;
         Iterator<String> j = music.iterator();

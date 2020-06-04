@@ -4,19 +4,18 @@ import java.util.Date;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
+/**
+ * @author Marina
+ * Classe servant a formater le logger
+ */
 
 public class CustomFormatter extends Formatter {
-
-    /**
-     * @author Marina
-     * Classe servant a formater le logger
-     */
 
 
     @Override
     public String format(LogRecord record) {
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         Date date = new Date(record.getMillis());
         sb.append(date.getTime());

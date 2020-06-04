@@ -15,21 +15,21 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
+/**
+ * @author Thomas
+ * @author Marina
+ * Classe mere pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
+ */
+
 public class ClientAlpha  {
 
-
-    /**
-     * Thomas/Marina
-     * Classe mere pour les clients. L'ensemble des méthodes et des interactions Server/Client sont réglés ici.
-     */
-
-    protected final static Logger ClientLogger = Logger.getLogger("ClientLog");
+    private final static Logger ClientLogger = Logger.getLogger("ClientLog");
     private Socket exchangeSocket;
     private String myMusicRepertory = "C://temp//AudioStream//myMusic";
     private int portClientClient;
 
     private InetAddress localAddress = null;
-    private String serverAddress = "192.168.0.15";
     private InetAddress serverIP;
     private int serverPort = 17257;
     private ServerSocket clientlisteningSocket;
@@ -41,6 +41,7 @@ public class ClientAlpha  {
     private Calendar currentDate = Calendar.getInstance();
     private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
     private String dateNow = formatter.format(currentDate.getTime());
+    private int myRole = 0;
 
 
     public ClientAlpha() {
@@ -49,17 +50,17 @@ public class ClientAlpha  {
 
     }
 
-    protected void start (){
+    /**
+     * @author Thomas
+     * En raison de difficulté a tester un client sur deux machines différentes, nous avons du simuler
+     * cela en creant deux classes clients.
+     * La methode start est un ersatz de constructeur qui sera recupere par chaque client par heritage.
+     * Elle sert a initier les sockets,
+     * envoyer la liste d audio au server
+     * lire le menu recu par le server
+     */
 
-        /**
-         * @author Thomas
-         * En raison de difficulté a tester un client sur deux machines différentes, nous avons du simuler
-         * cela en creant deux classes clients.
-         * La methode start est un ersatz de constructeur qui sera recupere par chaque client par heritage.
-         * Elle sert a initier les sockets,
-         * envoyer la liste d audio au server
-         * lire le menu recu par le server
-         */
+    private void start (){
 
         startClientLogger();
 
@@ -81,12 +82,13 @@ public class ClientAlpha  {
 
     }
 
+    /**
+     * @author Thomas
+     * methode servant a demander a l'utilisateur le numero de l'audio souhaite
+     */
 
-    protected int musicChoice() {
-        /**
-         * @author Thomas
-         * methode servant a demander a l'utilisateur le numero de l'audio souhaite
-         */
+    private int musicChoice() {
+
         boolean check=false;
         int myChoice = 0;
 
@@ -105,17 +107,17 @@ public class ClientAlpha  {
                 scan.next();
             }
         }
-        while (check==false);
+        while (!check);
 
         return myChoice;
     }
 
-    private void startClientLogger() {
+    /**
+     * @author Marina
+     * Methode servant a initier le logger pour les clients
+     */
 
-        /**
-         * @author Marina
-         * Methode servant a initier le logger pour les clients
-         */
+    private void startClientLogger() {
 
         FileHandler fh = null;
 
@@ -134,16 +136,16 @@ public class ClientAlpha  {
 
     }
 
+    /**
+     * @author_Thomas
+     * @author Marina
+     * Methode servant a initier les Socket de Server et d'echange pour les clients
+     */
+
     private void startClientSockets() throws IOException {
 
-        /**
-         * @author_Thomas_et_Marina
-         * Methode servant a initier les Socket de Server et d'echange pour les clients
-         */
-
         try {
-
-            serverIP = InetAddress.getByName(serverAddress);
+            serverIP = findIpAddress();
             ClientLogger.info("Get the address of the server : "+ serverIP);
             exchangeSocket = new Socket(findIpAddress(), serverPort);
         } catch (NullPointerException e) {
@@ -151,12 +153,12 @@ public class ClientAlpha  {
         }
     }
 
-    protected void sendSomethingToSomeone(Socket exchangeSocket, Object object) {
+    /**
+     * @author Thomas
+     * methode servant a envoyer un objet a un autre client
+     */
 
-        /**
-         * @author Thomas
-         * methode servant a envoyer un objet a un autre client
-         */
+    private void sendSomethingToSomeone(Socket exchangeSocket, Object object) {
 
         try {
             ClientLogger.info("I am connected to " + exchangeSocket.getPort());
@@ -169,13 +171,13 @@ public class ClientAlpha  {
         }
     }
 
-    protected List<Object> receiveClientRequest() {
+    /**
+     * @author Thomas
+     * Methode servant a la recuperation de la demande de chanson d'un client.
+     * On le recupere et on l'enregistre dans une List d'object puis on écoute le morceau reçu
+     */
 
-        /**
-         * author Thomas
-         * Methode servant a la recuperation de la demande de chanson d'un client.
-         * On le recupere et on l'enregistre dans une List d'object puis on écoute le morceau reçu
-         */
+    private List<Object> receiveClientRequest() {
 
         System.out.println("******************************************");
         System.out.println("Receiving client request");
@@ -208,12 +210,13 @@ public class ClientAlpha  {
 
     }
 
-    protected void transferAudio(List<Object>infoSong) {
+    /**
+     * @author Thomas
+     * @author Marina
+     * Methode qui sert a diffuser depuis le client l audio qui a ete demande
+     */
 
-        /**
-         * @author Thomas/Marina
-         * Methode qui sert a diffuser depuis le client l audio qui a ete demande
-         */
+    private void transferAudio(List<Object>infoSong) {
 
             try {
                 clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
@@ -240,15 +243,13 @@ public class ClientAlpha  {
             }
     }
 
+    /**
+     * @author Marina
+     * Methode servant a recevoir d'un client l'audio par le biais d'un bufferedInputstream
+     * l audio est joue directement depuis cette methode
+     */
 
-
-    protected void connectToOtherClient(InetAddress ipClient, int port){
-
-        /**
-         * author Marina
-         * Methode servant a recevoir d'un client l'audio par le biais d'un bufferedInputstream
-         * l audio est joue directement depuis cette methode
-         */
+    private void connectToOtherClient(InetAddress ipClient, int port){
 
         System.out.println("IP " + ipClient + " port " + port);
         try {
@@ -295,12 +296,13 @@ public class ClientAlpha  {
 
     }
 
-    private void readIncomingMessage(Socket socket) {
+    /**
+     * @author Thomas
+     * @author Marina
+     * Methode qui va permettre de recuperer des informations entrantes venant du server.
+     */
 
-        /**
-         * @author Thomas/Marina
-         * Methode qui va permettre de recuperer des informations entrantes venant du server.
-         */
+    private void readIncomingMessage(Socket socket) {
 
         System.out.println("******************************************");
         System.out.println("Incoming message from server");
@@ -333,12 +335,12 @@ public class ClientAlpha  {
 
     }
 
-    protected List<Object> readMessageConvertToList(Socket socket) {
+    /**
+     * @author Thomas/Marina
+     * Methode qui va permettre de recuperer des informations entrantes venant du server.
+     */
 
-        /**
-         * @author Thomas/Marina
-         * Methode qui va permettre de recuperer des informations entrantes venant du server.
-         */
+    private List<Object> readMessageConvertToList(Socket socket) {
 
         List<Object>incomingMessage = null;
         System.out.println("******************************************");
@@ -359,11 +361,12 @@ public class ClientAlpha  {
 
     }
 
+    /**
+     * @author Thomas
+     * Methode qui va servir à determiner automatiquement l'adresse ip du client et son interface
+     */
+
     private InetAddress findIpAddress() {
-        /**
-         * @author Thomas
-         * Methode qui va servir à determiner automatiquement l'adresse ip du client et son interface
-         */
 
         InetAddress localAddress = null;
         NetworkInterface ni;
@@ -384,13 +387,13 @@ public class ClientAlpha  {
         return localAddress;
     }
 
-    private String findInterface() throws SocketException {
+    /**
+     * @author Thomas
+     * Methode qui va detecter automatiquement l'interface wlan utilisee par le client
+     * On va forcer l'interface de type wlan.
+     */
 
-        /**
-         * @author Thomas
-         * Methode qui va detecter automatiquement l'interface wlan utilisee par le client
-         * On va forcer l'interface de type wlan.
-         */
+    private String findInterface() throws SocketException {
 
         String myInterface = "";
 
@@ -410,12 +413,12 @@ public class ClientAlpha  {
         return myInterface;
     }
 
-    private List<String> searchMyMusic() {
+    /**
+     * @author Thomas
+     * Methode qui va repertorier tous les fichiers wav se trouvant dans le repertoire du client
+     */
 
-        /**
-         * @author Thomas
-         * Methode qui va repertorier tous les fichiers wav se trouvant dans le repertoire du client
-         */
+    private List<String> searchMyMusic() {
 
         List<String> myMusic = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(Paths.get(myMusicRepertory))) {
@@ -429,16 +432,16 @@ public class ClientAlpha  {
         return myMusic;
     }
 
+    /**
+     * @author Thomas
+     * Methode qui va chercher la taille necessaire pour les array de byte
+     * de chaque chanson du client
+     */
+
     private List<Integer> searchSizesMySongs() {
 
-        /**
-         * @author Thomas
-         * Methode qui va chercher la taille necessaire pour les array de byte
-         * de chaque chanson du client
-         */
-
         List<Integer> sizesMySongs = new ArrayList<>();
-        int size = 0;
+        int size;
         myMusic = searchMyMusic();
 
         for (int i = 0; i < myMusic.size(); i++) {
@@ -452,30 +455,31 @@ public class ClientAlpha  {
 
     }
 
-    private List<Object> collectMyInfo() {
+    /**
+     * @author Thomas
+     * Methode qui va charger les infos necessaires pour le server dans une List
+     */
 
-        /**
-         * @author Thomas
-         * Methode qui va charger les infos necessaires pour le server dans une List
-         */
+    private List<Object> collectMyInfo() {
 
         List<Object> myCollectedInfo = new ArrayList<>();
         myCollectedInfo.add(findIpAddress());
         myCollectedInfo.add(portClientClient);
         myCollectedInfo.add(searchMyMusic());
         myCollectedInfo.add(searchSizesMySongs());
+        myCollectedInfo.add(myRole);
 
         return myCollectedInfo;
     }
 
 
-    protected void askClientForAnAudio(){
+    /**
+     * @author Thomas
+     * Methode regroupant l ensemble des methodes et demarches necessaires pour la demande
+     * aupres d un autre client d un audio jusqu a sa reception et a son ecoute
+     */
 
-        /**
-         * @author Thomas
-         * Methode regroupant l ensemble des methodes et demarches necessaires pour la demande
-         * aupres d un autre client d un audio jusqu a sa reception et a son ecoute
-         */
+    private void askClientForAnAudio(){
 
         List<Object> clientMusicInfo =  readMessageConvertToList(exchangeSocket);
         InetAddress ipOfOtherClient = (InetAddress) clientMusicInfo.get(0);
@@ -496,28 +500,27 @@ public class ClientAlpha  {
 
     }
 
-    protected void giveClientAnAudio(){
+    /**
+     * author Thomas
+     * Methode regroupant l ensemble des methodes et des demarches necessaires
+     * pour la reception d un requete d un autre client pour un audio jusqu a sa diffusion
+     */
 
-        /**
-         * author Thomas
-         * Methode regroupant l ensemble des methodes et des demarches necessaires
-         * pour la reception d un requete d un autre client pour un audio jusqu a sa diffusion
-         */
+    private void giveClientAnAudio(){
 
         List<Object>request = receiveClientRequest();
         transferAudio(request);
 
     }
 
+    /**
+     * @author Thomas
+     * Methode servant a effectuer la demonstration de maniere sequentielle.
+     * Le premier client qu on utilise doit OBLIGATOIREMENT se definir comme nr. 1 Listener Client
+     * Le server a ete defini dans ce sens la.
+     */
+
     public void whoAreYou(){
-
-        /**
-         * @author Thomas
-         * Methode servant a effectuer la demonstration de maniere sequentielle.
-         * Le premier client qu on utilise doit OBLIGATOIREMENT se definir comme nr. 1 Listener Client
-         * Le server a ete defini dans ce sens la.
-         */
-
 
         System.out.println("******************************************");
         System.out.println("Welcome to AudioStream!");
@@ -532,6 +535,7 @@ public class ClientAlpha  {
                         System.out.println("******************************************");
                         myMusicRepertory="C://temp//AudioStream//myMusic";
                         portClientClient = 25245;
+                        myRole=1;
 
                         start();
                         sendSomethingToSomeone(exchangeSocket, musicChoice());
@@ -542,6 +546,7 @@ public class ClientAlpha  {
                         System.out.println("******************************************");
                         myMusicRepertory="C://temp//AudioStream2//myMusic";
                         portClientClient = 25250;
+                        myRole=2;
 
                         start();
                         giveClientAnAudio();
@@ -554,19 +559,19 @@ public class ClientAlpha  {
 
     }
 
-    private int myChoice() {
+    /**
+     * @author Thomas
+     * methode qui permet de recuperer un choix d'un client dans la console
+     */
 
-        /**
-         * @Thomas
-         * methode qui permet de recuperer un choix d'un client dans la console
-         */
+    private int myChoice() {
 
         int myChoice = 0;
         boolean check = false;
 
         do {
             Scanner scan = new Scanner(System.in);
-            System.out.println("Please enter the number of your song ");
+            System.out.println("Please enter the number of your choice ");
 
             try {
                 myChoice = scan.nextInt();
@@ -586,7 +591,7 @@ public class ClientAlpha  {
                 scan.next();
             }
         }
-        while (check==false);
+        while (!check);
 
         return myChoice;
     }

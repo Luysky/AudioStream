@@ -2,12 +2,13 @@ package HES;
 
 import java.net.Socket;
 
-public class AcceptClient implements Runnable {
 
-    /**
-     * Marina
-     * Classe servant a l'enregistrement de nouveaux clients.
-     */
+/**
+ * @author Marina
+ * Classe servant a l'enregistrement de nouveaux clients.
+ */
+
+public class AcceptClient implements Runnable {
 
 
     protected Socket clientSocketOnServer;
