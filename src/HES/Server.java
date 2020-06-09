@@ -16,23 +16,24 @@ import java.util.logging.Logger;
 
 public class Server {
 
-    private final static Logger ServerLogger = Logger.getLogger("ServerLog");
+    private LogFiles logger;
+
     private List<Object> clientsList = new ArrayList<>();
     private int idClient = 0;
     private ServerSocket serverListeningSocket;
     private Socket [] serverExchangeSocket = new Socket [2];
     private InetAddress localAddress = null;
     private String interfaceName = "wlan1";
-    private Calendar currentDate = Calendar.getInstance();
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
-    private String dateNow = dateFormat.format(currentDate.getTime());
     private InputStream inputStream = null;
     private ObjectInputStream objectInputStream = null;
 
 
     public Server() {
 
-        startServerLogger();
+        logger = LogFiles.getInstance();
+        logger.startLog();
+        logger.logClientServer.info("******************** Program starts ********************");
+
         serverListeningSocket = startServerSocket();
         acceptNewClients();
         dispatchMusicMenuToClient();
@@ -58,12 +59,12 @@ public class Server {
                 Thread acceptClientThread = new Thread(new AcceptClient(serverExchangeSocket[cptloop]));
                 acceptClientThread.start();
 
-                ServerLogger.info("New client is connected " + serverExchangeSocket[cptloop]);
+                logger.logClientServer.warning("New client is connected " + serverExchangeSocket[cptloop]);
                 registerClient(serverExchangeSocket[cptloop]);
                 cptloop++;
 
             } catch (IOException e) {
-                ServerLogger.severe("IOException " + e.toString());
+                logger.logClientServer.severe("IOException " + e.toString());
                 e.printStackTrace();
             }
             if (cptloop == 2) {
@@ -71,9 +72,9 @@ public class Server {
             }
         }
 
-        ServerLogger.info("Number of clients connected " + cptloop);
-        ServerLogger.info("Client one" + serverExchangeSocket[0]);
-        ServerLogger.info("Client two" + serverExchangeSocket[1]);
+        logger.logClientServer.info("Number of clients connected " + cptloop);
+        logger.logClientServer.info("Client one" + serverExchangeSocket[0]);
+        logger.logClientServer.info("Client two" + serverExchangeSocket[1]);
 
     }
 
@@ -93,7 +94,7 @@ public class Server {
             sendMusicMenu(serverExchangeSocket[1], 1);
 
         } catch (IOException e) {
-            ServerLogger.severe("IOException " + e.toString());
+            logger.logClientServer.severe("IOException " + e.toString());
             e.printStackTrace();
         }
     }
@@ -116,28 +117,6 @@ public class Server {
 
     }
 
-    /**
-     * @author Marina
-     * Methode servant a initier le logger pour le Server
-     */
-
-    private void startServerLogger() {
-
-        FileHandler fh = null;
-        try {
-            fh = new FileHandler("C://temp//AudioStream//Server" + dateNow + ".log", false);
-        } catch (IOException e) {
-            e.printStackTrace();
-            ServerLogger.severe("IOException of FileHandler " + e.toString());
-        }
-        CustomFormatter customFormatter = new CustomFormatter();
-        fh.setFormatter(customFormatter);
-
-        ServerLogger.addHandler(fh);
-        ServerLogger.setLevel(Level.INFO);
-        ServerLogger.info("******************** Program starts ********************");
-
-    }
 
     /**
      * @author Thomas
@@ -152,18 +131,19 @@ public class Server {
             findConnectionInfo();
             try {
                 serverListeningSocket = new ServerSocket(17257, 10, localAddress);
-                ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
-                ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
+                logger.logClientServer.warning("New server listening socket");
+                logger.logClientServer.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
+                logger.logClientServer.info("Listening to Port :" + serverListeningSocket.getLocalPort());
                 System.out.println();
                 System.out.println("******************************************");
                 System.out.println("Server listening to clients");
             } catch (IOException e) {
                 e.printStackTrace();
-                ServerLogger.severe("IO exception " + e.toString());
+                logger.logClientServer.severe("IO exception " + e.toString());
             }
         } catch (Exception e) {
             e.printStackTrace();
-            ServerLogger.severe("Exception " + e.toString());
+            logger.logClientServer.severe("Exception " + e.toString());
         }
         return serverListeningSocket;
     }
@@ -179,9 +159,10 @@ public class Server {
         NetworkInterface ni = null;
         try {
             ni = NetworkInterface.getByName(interfaceName);
+            logger.logClientServer.warning("New NetworkInterface available");
         } catch (SocketException e) {
             System.out.println("Connection Timed out");
-            ServerLogger.severe("Connection Timed out");
+            logger.logClientServer.severe("Connection Timed out");
         }
 
         Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
@@ -209,7 +190,7 @@ public class Server {
     private void registerClient(Socket serverExchangeSocket) {
 
         idClient++;
-        ServerLogger.info("A client is connected");
+        logger.logClientServer.warning("A client is connected");
         List<Object> clientPackage = new ArrayList<>();
         List<Object> incomingRocket = null;
 
@@ -217,9 +198,9 @@ public class Server {
             inputStream = serverExchangeSocket.getInputStream();
             objectInputStream = new ObjectInputStream(inputStream);
             incomingRocket = (List<Object>) objectInputStream.readObject();
-            ServerLogger.info("I've got from " + idClient + " this info " + incomingRocket);
+            logger.logClientServer.info("I've got from " + idClient + " this info " + incomingRocket);
         } catch (IOException | ClassNotFoundException e) {
-            ServerLogger.severe("IO Exception or ClassNotFoundException in InputStream " + e.toString());
+            logger.logClientServer.severe("IO Exception or ClassNotFoundException in InputStream " + e.toString());
         }
 
         clientPackage.add(serverExchangeSocket);
@@ -233,7 +214,7 @@ public class Server {
         InetAddress ia = (InetAddress) clientRocket.get(0);
 
         System.out.println("Client InetAddress: " + ia);
-        ServerLogger.info("Client IP :" + clientRocket.get(0));
+        logger.logClientServer.info("Client IP :" + clientRocket.get(0));
         int portClientClient = (int) clientRocket.get(1);
         System.out.println("Client Port for other clients: " + portClientClient);
         System.out.println("Client music list: " + clientRocket.get(2));
@@ -259,14 +240,14 @@ public class Server {
                 incomingMessage = (Integer) objectInputStream2.readObject();
 
             } catch (IOException e) {
-                ServerLogger.severe("IO Exception in ObjectInputStream " + e.toString());
+                logger.logClientServer.severe("IO Exception in ObjectInputStream " + e.toString());
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
 
             if(incomingMessage!=0){
-                ServerLogger.info("A client is connected");
-                ServerLogger.info("Audio selected");
+                logger.logClientServer.info("A client is connected");
+                logger.logClientServer.info("Audio selected");
                 methodeActiv=false;
             }
         }

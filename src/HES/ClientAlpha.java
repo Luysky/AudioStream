@@ -7,11 +7,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,7 +20,6 @@ import java.util.stream.Stream;
 
 public class ClientAlpha  {
 
-    private final static Logger ClientLogger = Logger.getLogger("ClientLog");
     private Socket exchangeSocket;
     private String myMusicRepertory = "C://temp//AudioStream//myMusic";
     private int portClientClient;
@@ -38,9 +33,6 @@ public class ClientAlpha  {
     private String incomingMessage = "";
     private InputStream inputStream = null;
     private List<String> myMusic = new ArrayList<>();
-    private Calendar currentDate = Calendar.getInstance();
-    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-H-mm-ss");
-    private String dateNow = formatter.format(currentDate.getTime());
     private int myRole = 0;
 
 
@@ -62,12 +54,9 @@ public class ClientAlpha  {
 
     private void start (){
 
-        startClientLogger();
-
         try {
             startClientSockets();
         } catch (IOException e) {
-            ClientLogger.severe("IOException " + e.toString());
             e.printStackTrace();
         }
 
@@ -113,30 +102,6 @@ public class ClientAlpha  {
     }
 
     /**
-     * @author Marina
-     * Methode servant a initier le logger pour les clients
-     */
-
-    private void startClientLogger() {
-
-        FileHandler fh = null;
-
-        try {
-            fh = new FileHandler("C://temp//AudioStream//Client " + dateNow + ".log", false);
-        } catch (IOException e) {
-            ClientLogger.severe("IOException " + e.toString());
-            e.printStackTrace();
-        }
-        CustomFormatter customFormatter = new CustomFormatter();
-        fh.setFormatter(customFormatter);
-
-        ClientLogger.addHandler(fh);
-        ClientLogger.setLevel(Level.INFO);
-        ClientLogger.info("********************** Program starts ******************");
-
-    }
-
-    /**
      * @author_Thomas
      * @author Marina
      * Methode servant a initier les Socket de Server et d'echange pour les clients
@@ -146,7 +111,7 @@ public class ClientAlpha  {
 
         try {
             serverIP = findIpAddress();
-            ClientLogger.info("Get the address of the server : "+ serverIP);
+            System.out.println("Get the address of the server : "+ serverIP);
             exchangeSocket = new Socket(findIpAddress(), serverPort);
         } catch (NullPointerException e) {
             System.out.println("Connection interrupted with the server");
@@ -161,11 +126,11 @@ public class ClientAlpha  {
     private void sendSomethingToSomeone(Socket exchangeSocket, Object object) {
 
         try {
-            ClientLogger.info("I am connected to " + exchangeSocket.getPort());
+            System.out.println("I am connected to " + exchangeSocket.getPort());
             OutputStream outputStream = exchangeSocket.getOutputStream();
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
             objectOutputStream.writeObject(object);
-            ClientLogger.info("Message sent" + object);
+            System.out.println("Message sent" + object);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -187,7 +152,7 @@ public class ClientAlpha  {
 
             clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
             socketForOtherClient = clientlisteningSocket.accept();
-            ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
+            System.out.println("Socket for Other Client created " + socketForOtherClient);
 
             try {
                 InputStream inputStream = socketForOtherClient.getInputStream();
@@ -196,7 +161,6 @@ public class ClientAlpha  {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                ClientLogger.severe("IO exception " + e.toString());
             }
             clientlisteningSocket.close();
 
@@ -225,7 +189,7 @@ public class ClientAlpha  {
                 System.out.println("******************************************");
                 System.out.println("Transfering audio to other client");
                 System.out.println("Sharing audio : "+infoSong.get(2));
-                ClientLogger.info("Transfering audio "+infoSong.get(2)+" to ohter client");
+                System.out.println("Transfering audio "+infoSong.get(2)+" to ohter client");
 
                 File myFile = new File((String) infoSong.get(2));
                 byte[] mybytearray = new byte[(int) myFile.length()];
@@ -239,7 +203,6 @@ public class ClientAlpha  {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                ClientLogger.severe("IO exception " + e.toString());
             }
     }
 
@@ -254,9 +217,8 @@ public class ClientAlpha  {
         System.out.println("IP " + ipClient + " port " + port);
         try {
             exchangeSocketForOtherClient = new Socket(ipClient, port);
-            ClientLogger.info("Client connected to other Client : socket" + exchangeSocketForOtherClient);
+            System.out.println("Client connected to other Client : socket" + exchangeSocketForOtherClient);
         } catch (IOException e) {
-            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
             e.printStackTrace();
         }
 
@@ -275,7 +237,7 @@ public class ClientAlpha  {
                     try {
                         System.out.println("Enjoy !");
                         Thread.sleep(player.clip.getMicrosecondLength());
-                        ClientLogger.info("Listening music");
+                        System.out.println("Listening music");
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -287,7 +249,6 @@ public class ClientAlpha  {
                 }
 
             } catch (IOException e) {
-                ClientLogger.severe("IOException while trying to get InputStream from other Client" + e.toString());
                 e.printStackTrace();
             }
         }
@@ -489,9 +450,8 @@ public class ClientAlpha  {
 
         try {
             comSocket = new Socket(ipOfOtherClient, port);
-            ClientLogger.info("Client connected to other Client : socket" + ipOfOtherClient);
+            System.out.println("Client connected to other Client : socket" + ipOfOtherClient);
         } catch (IOException e) {
-            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
             e.printStackTrace();
         }
 
