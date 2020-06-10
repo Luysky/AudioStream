@@ -14,7 +14,7 @@ public class AudioPlayer {
 
     public Clip clip;
     public String status;
-    public AudioInputStream audioInputStream;
+    public volatile AudioInputStream audioInputStream;
 
 
     public AudioPlayer(InputStream is) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
@@ -26,7 +26,7 @@ public class AudioPlayer {
         clip.loop(Clip.LOOP_CONTINUOUSLY);
     }
 
-    public void play(){
+    public synchronized void play(){
         clip.start();
         status = "play";
     }

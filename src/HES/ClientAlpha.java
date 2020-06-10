@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,9 +34,30 @@ public class ClientAlpha  {
     private String serverAddress = "192.168.0.15";
     private InetAddress serverIP;
     private int serverPort = 17257;
+
     private ServerSocket clientlisteningSocket;
     private Socket socketForOtherClient;
-    private Socket exchangeSocketForOtherClient;
+    private ServerSocket serverSocketForClient;
+
+    private ArrayList<ClientManager> clients = new ArrayList<>();
+    private ExecutorService pool = Executors.newFixedThreadPool(4); // menages up to 4 clients
+    private ClientManager clientThread;
+
+    // For ClientClient communication
+    private String line = null;
+    private BufferedReader br = null;
+    private BufferedReader is = null;
+    private InputStream inputForMusic;
+    private PrintWriter os = null;
+    private Scanner scan;
+
+    // For music
+    private String pathOfChosenSong = "";
+    private Integer sizeOfChosenSong = 0;
+    private InetAddress ipOfOwnerOfSong;
+    private int portOfOwnerOfSong;
+    private Socket socketForMusic;
+
     private String incomingMessage = "";
     private InputStream inputStream = null;
     private List<String> myMusic = new ArrayList<>();
@@ -43,11 +66,8 @@ public class ClientAlpha  {
     private String dateNow = formatter.format(currentDate.getTime());
 
 
-    public ClientAlpha() {
 
-        //whoAreYou();
-
-    }
+    public ClientAlpha() { }
 
     protected void start (){
 
@@ -80,7 +100,6 @@ public class ClientAlpha  {
         }
 
     }
-
 
     protected int musicChoice() {
         /**
@@ -169,80 +188,7 @@ public class ClientAlpha  {
         }
     }
 
-    protected List<Object> receiveClientRequest() {
-
-        /**
-         * author Thomas
-         * Methode servant a la recuperation de la demande de chanson d'un client.
-         * On le recupere et on l'enregistre dans une List d'object puis on écoute le morceau reçu
-         */
-
-        System.out.println("******************************************");
-        System.out.println("Receiving client request");
-
-        List<Object> clientMessage = null;
-        try {
-
-            clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
-            socketForOtherClient = clientlisteningSocket.accept();
-            ClientLogger.info("Socket for Other Client created " + socketForOtherClient);
-
-            try {
-                InputStream inputStream = socketForOtherClient.getInputStream();
-                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                clientMessage = (List<Object>) objectInputStream.readObject();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                ClientLogger.severe("IO exception " + e.toString());
-            }
-            clientlisteningSocket.close();
-
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return clientMessage;
-
-    }
-
-    protected void transferAudio(List<Object>infoSong) {
-
-        /**
-         * @author Thomas/Marina
-         * Methode qui sert a diffuser depuis le client l audio qui a ete demande
-         */
-
-            try {
-                clientlisteningSocket = new ServerSocket(portClientClient, 10, localAddress);
-                socketForOtherClient = clientlisteningSocket.accept();
-
-                System.out.println("******************************************");
-                System.out.println("Transfering audio to other client");
-                System.out.println("Sharing audio : "+infoSong.get(2));
-                ClientLogger.info("Transfering audio "+infoSong.get(2)+" to ohter client");
-
-                File myFile = new File((String) infoSong.get(2));
-                byte[] mybytearray = new byte[(int) myFile.length()];
-
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
-                bis.read(mybytearray, 0, mybytearray.length);
-
-                OutputStream os = socketForOtherClient.getOutputStream();
-                os.write(mybytearray, 0, mybytearray.length);
-                os.flush();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                ClientLogger.severe("IO exception " + e.toString());
-            }
-    }
-
-
-
-    protected void connectToOtherClient(InetAddress ipClient, int port){
+    protected void listenToMusic(InputStream is) {
 
         /**
          * author Marina
@@ -250,48 +196,29 @@ public class ClientAlpha  {
          * l audio est joue directement depuis cette methode
          */
 
-        System.out.println("IP " + ipClient + " port " + port);
+
+        System.out.println("******************************************");
+        System.out.println("Client starts receiving audio");
+
+        AudioPlayer player = null;
         try {
-            exchangeSocketForOtherClient = new Socket(ipClient, port);
-            ClientLogger.info("Client connected to other Client : socket" + exchangeSocketForOtherClient);
-        } catch (IOException e) {
-            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
-            e.printStackTrace();
-        }
-
-        boolean musicOn=true;
-
-        do {
-
+            player = new AudioPlayer(is);
+            player.play();
+            System.out.println("Play is on");
             try {
-                BufferedInputStream bis = new BufferedInputStream(exchangeSocketForOtherClient.getInputStream());
-                System.out.println("******************************************");
-                System.out.println("Client starts receiving audio");
-
-                try {
-                    AudioPlayer player = new AudioPlayer(bis);
-                    player.play();
-                    try {
-                        System.out.println("Enjoy !");
-                        Thread.sleep(player.clip.getMicrosecondLength());
-                        ClientLogger.info("Listening music");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                } catch (UnsupportedAudioFileException e) {
-                    e.printStackTrace();
-                } catch (LineUnavailableException e) {
-                    e.printStackTrace();
-                }
-
-            } catch (IOException e) {
-                ClientLogger.severe("IOException while trying to get InputStream from other Client" + e.toString());
+                System.out.println("Enjoy !");
+                Thread.sleep(player.clip.getMicrosecondLength());
+                ClientLogger.info("Listening music");
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        } catch (UnsupportedAudioFileException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (LineUnavailableException e) {
+            e.printStackTrace();
         }
-        while (musicOn);
-
 
     }
 
@@ -410,7 +337,7 @@ public class ClientAlpha  {
         return myInterface;
     }
 
-    private List<String> searchMyMusic() {
+    protected List<String> searchMyMusic() {
 
         /**
          * @author Thomas
@@ -468,44 +395,111 @@ public class ClientAlpha  {
         return myCollectedInfo;
     }
 
-
-    protected void askClientForAnAudio(){
-
-        /**
-         * @author Thomas
-         * Methode regroupant l ensemble des methodes et demarches necessaires pour la demande
-         * aupres d un autre client d un audio jusqu a sa reception et a son ecoute
-         */
-
-        List<Object> clientMusicInfo =  readMessageConvertToList(exchangeSocket);
-        InetAddress ipOfOtherClient = (InetAddress) clientMusicInfo.get(0);
-        int port = (Integer) clientMusicInfo.get(1);
-
-        Socket comSocket = null;
+    private void createEchoServer(InetAddress serverIP, int port) throws IOException {
 
         try {
-            comSocket = new Socket(ipOfOtherClient, port);
-            ClientLogger.info("Client connected to other Client : socket" + ipOfOtherClient);
+            clientlisteningSocket = new ServerSocket(port, 10, serverIP);
         } catch (IOException e) {
-            ClientLogger.severe("IOException while connection to Other Client" + e.toString());
-            e.printStackTrace();
+            throw new RuntimeException("Could not create ServerSocket ", e);
         }
 
-        sendSomethingToSomeone(comSocket,clientMusicInfo);
-        connectToOtherClient(ipOfOtherClient, port);
+        while(true) {
+            synchronized (clientlisteningSocket) {
+                try {
+                    socketForOtherClient = clientlisteningSocket.accept();
+                    ClientLogger.info("Socket for ClientClient connection " + socketForOtherClient);
+                } catch (IOException e) {
+                    ClientLogger.severe("IOException while accepting Clients" + e.toString());
+                }
+            }
+            clientThread = new ClientManager(socketForOtherClient, clients);
+            clients.add(clientThread);
+            pool.execute(clientThread);
+        }
+
 
     }
 
-    protected void giveClientAnAudio(){
+    private Socket connectToEchoServer(InetAddress serverIP, int serverPort){
+        try {
+            socketForOtherClient = new Socket(serverIP, serverPort);
+            ClientLogger.info("Socket to connect to other Client : " + socketForOtherClient);
 
-        /**
-         * author Thomas
-         * Methode regroupant l ensemble des methodes et des demarches necessaires
-         * pour la reception d un requete d un autre client pour un audio jusqu a sa diffusion
-         */
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.print("IO Exception");
+        }
 
-        List<Object>request = receiveClientRequest();
-        transferAudio(request);
+        return socketForOtherClient;
+
+    }
+
+    private void talkToOthers(Socket s){
+
+        br = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            is = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            os = new PrintWriter(s.getOutputStream(), true);
+            inputForMusic = new BufferedInputStream(s.getInputStream());
+        }catch(IOException e){
+            ClientLogger.severe("IOException while talking" + e);
+        }
+        ClientLogger.info("Client Address : " + s.getInetAddress() + ", port " + s.getPort());
+        System.out.println("Enter Data to echo Server ( Enter QUIT to end):");
+
+
+        String response = null;
+        try {
+            line = br.readLine();
+
+            while (line.compareTo("QUIT") != 0) {
+
+                if(line.matches(".*\\d.*")){
+                    os.println(line);
+                    os.flush();
+                    System.out.println("I asked to play a song with a number");
+                    listenToMusic(inputForMusic);
+                }else if(line.startsWith("play music")){
+                    os.println(line);
+                    os.flush();
+                    System.out.println("I asked to play music to all ");
+                    listenToMusic(inputForMusic);
+                }else {
+                    os.println(line);
+                    os.flush();
+                    response = is.readLine();
+                    System.out.println("Server Response : " + response);
+                }
+
+                line = br.readLine();
+            }
+
+            String msg = "I am ready to listen to music ";
+            os.println(msg);
+            os.flush();
+            String serverMsg = is.readLine();
+            System.out.println("Message from server " + serverMsg);
+            listenToMusic(inputForMusic);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Socket read Error");
+        } finally {
+
+            try {
+                is.close();
+                os.close();
+                br.close();
+                s.close();
+                System.out.println("All is closed");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("Connection Closed");
+
+        }
+
 
     }
 
@@ -535,7 +529,17 @@ public class ClientAlpha  {
 
                         start();
                         sendSomethingToSomeone(exchangeSocket, musicChoice());
-                        askClientForAnAudio();
+                        List<Object> clientMusicInfo =  readMessageConvertToList(exchangeSocket);
+                        ipOfOwnerOfSong = (InetAddress) clientMusicInfo.get(0);
+                        portOfOwnerOfSong = (Integer) clientMusicInfo.get(1);
+                        pathOfChosenSong = (String)clientMusicInfo.get(2);
+                        sizeOfChosenSong = (Integer)clientMusicInfo.get(3);
+
+                        System.out.println("clientMusicInfo" + clientMusicInfo);
+                        socketForMusic = connectToEchoServer(ipOfOwnerOfSong, portOfOwnerOfSong);
+                        System.out.println("Socket to talk and listen to music" + socketForMusic);
+                        talkToOthers(socketForMusic);
+
                         break;
 
             case 2 :    System.out.println("You have selected Client Broadcaster");
@@ -544,7 +548,12 @@ public class ClientAlpha  {
                         portClientClient = 25250;
 
                         start();
-                        giveClientAnAudio();
+                        try {
+                        createEchoServer(findIpAddress(), portClientClient);
+                        } catch (IOException e) {
+                        ClientLogger.severe("IOException while creating ClientServer " + e.toString());
+                        }
+
                         break;
 
             default:    System.out.println("Sorry, something went wrong please restart");

@@ -62,12 +62,12 @@ public class Server {
                 registerClient(serverExchangeSocket[cptloop]);
                 cptloop++;
 
-            } catch (IOException e) {
-                ServerLogger.severe("IOException " + e.toString());
-                e.printStackTrace();
-            }
-            if (cptloop == 2) {
-                useOfMethode = false;
+
+                if (cptloop == 2) {
+                    useOfMethode = false;
+                }
+            }catch(IOException e){
+                ServerLogger.severe("IO Exception while connecting with Client" + e.toString());
             }
         }
 
@@ -150,9 +150,7 @@ public class Server {
                 serverListeningSocket = new ServerSocket(17257, 10, localAddress);
                 ServerLogger.info("Default Timeout :" + serverListeningSocket.getSoTimeout());
                 ServerLogger.info("Listening to Port :" + serverListeningSocket.getLocalPort());
-                System.out.println();
-                System.out.println("******************************************");
-                System.out.println("Server listening to clients");
+
             } catch (IOException e) {
                 e.printStackTrace();
                 ServerLogger.severe("IO exception " + e.toString());
@@ -260,7 +258,7 @@ public class Server {
             }
 
             if(incomingMessage!=0){
-                ServerLogger.info("A client is connected");
+                ServerLogger.info("Two clients are connected");
                 ServerLogger.info("Audio selected");
                 methodeActiv=false;
             }
@@ -268,8 +266,6 @@ public class Server {
 
         return incomingMessage;
     }
-
-
 
     private void sendSomethingToClient(Socket socket, Object object) throws IOException {
 
@@ -312,7 +308,6 @@ public class Server {
 
         return musicRocket;
     }
-
 
     private void sendMusicMenu(Socket socket, int clientN) throws IOException {
 

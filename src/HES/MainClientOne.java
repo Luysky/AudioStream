@@ -4,7 +4,7 @@ public class MainClientOne {
 
     public static void main(String[] args) {
 
-        ClientOne clientOne = new ClientOne();
+        ClientOne clientOne1 = new ClientOne();
 
     }
 }
